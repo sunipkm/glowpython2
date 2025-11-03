@@ -1,0 +1,34 @@
+.ipynb_checkpoints/
+.mypy_cache/
+*.egg-info/
+**/fort.12
+__pycache__/
+bin/
+build/
+builldir/
+dist/
+**/.DS_Store
+# Compiled Dynamic libraries
+**/*.so
+**/*.dylib
+**/*.dll
+
+# Fortran module files
+**/*.mod
+
+# Compiled Static libraries
+**/*.lai
+**/*.la
+**/*.a
+**/*.lib
+
+# Executables
+**/*.exe
+**/*.out
+**/*.app
+
+# Logs
+**/*.log
+
+# Others
+*.txt

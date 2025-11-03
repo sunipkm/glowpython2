@@ -1,0 +1,12 @@
+{
+    "autoDocstringPy.customTemplatePath": ".vscode/docstring.mustache",
+    "files.associations": {
+        "*.f": "FortranFixedForm",
+        "*.f90": "FortranFreeForm"
+    },
+    "[FortranFixedForm]": {
+        "editor.rulers": [
+            72
+        ]
+    }
+}
