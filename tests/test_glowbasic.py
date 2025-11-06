@@ -1,4 +1,4 @@
-import glowpython
+import glowpython2
 import unittest
 import io
 import sys
@@ -37,7 +37,7 @@ class TestGlowbasic(unittest.TestCase):
             with open('src/GLOW/in.basic.day', 'r') as infile:
                 with captured_stdin() as stdin:
                     import glowbasic
-                    glowpython.release_cglow()
+                    glowpython2.release_cglow()
                     stdin.write(infile.read())
                     glowbasic.main()
                     self.actual = stdout.read()

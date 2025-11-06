@@ -231,12 +231,12 @@ class GlowModel(Singleton):
             cg.sflux_init() # we still need to call it to set the sflux_init last value
         else:
             if sflux == 'Hinteregger': 
-                sflux = 0 
+                iscale = 0 
             elif sflux == 'EUVAC': 
-                sflux = 1
+                iscale = 1
             else:
                 raise ValueError(f'Invalid value for sflux: {sflux}')
-            cg.iscale = sflux
+            cg.iscale = iscale
             cg.sflux_init()
 
         self._initd = True
@@ -709,7 +709,7 @@ class GlowModel(Singleton):
         # ! Call CONDUCT to calculate Pederson and Hall conductivities:
         pedcond = zeros((cg.jmax,), self._z.dtype)
         hallcond = pedcond.copy()
-        conduct_iface(self._z, pedcond, hallcond)  # loop in FORTRAN
+        conduct_iface(pedcond, hallcond)  # loop in FORTRAN
         # for j in range(cg.jmax):
         #     pedcond[j], hallcond[j] = conduct(cg.glat, cg.glong, self._z[j], cg.zo[j], cg.zo2[j], cg.zn2[j],
         #                                       cg.zxden[2, j], cg.zxden[5, j], cg.zxden[6, j], cg.ztn[j], cg.zti[j], cg.zte[j])

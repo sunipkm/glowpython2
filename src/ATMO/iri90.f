@@ -1037,33 +1037,6 @@ C
       END
 C
 C
-C Subroutine DFP, Stan Solomon, 3/92, splices filename to directory
-C
-      subroutine dfp(direct,filename,path)
-      character*(*) direct,filename,path
-      character*50 blanks
-      data blanks/'                                                  '/
-      path=blanks
-      nch=len(direct)
-      do 10 i=1,nch
-      if (direct(i:i).ne.' ') goto 20
-   10 continue
-   20 lb=i
-      do 30 i=nch,1,-1
-      if (direct(i:i).ne.' ') goto 40
-   30 continue
-   40 le=i
-      if (lb.ge.nch .or. le.le.0) then
-        path(1:10)=filename(1:10)
-      else
-        nd=le-lb+1
-        path(1:nd)=direct(lb:le)
-        path(nd+1:nd+10)=filename(1:10)
-      endif
-      return
-      end
-C
-C
 C
 C
 C IRIF12.FOR ------------------------------------- OCTOBER 1991

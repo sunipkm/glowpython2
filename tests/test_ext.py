@@ -1,4 +1,4 @@
-import glowpython
+import glowpython2
 from glow834.fortran import cglow
 from numpy import ndarray
 import unittest
@@ -10,23 +10,23 @@ class TestExtension(unittest.TestCase):
 
     def test_cglow_init(self):
         self.assertEqual(cglow.zz, None)
-        glowpython.init_cglow(self.jmax)
+        glowpython2.init_cglow(self.jmax)
         self.assertTrue(isinstance(cglow.zz, ndarray))
         self.assertTrue((cglow.zz == 0).all())
-        self.assertRaises(RuntimeError, glowpython.init_cglow, self.jmax)
+        self.assertRaises(RuntimeError, glowpython2.init_cglow, self.jmax)
 
     def test_cglow_release(self):
         self.assertTrue(cglow.zz is not None)
-        glowpython.fortran.cglow_release()
+        glowpython2.fortran.cglow_release()
         self.assertTrue(cglow.zz is None)
-        glowpython.reset_cglow(12)
+        glowpython2.reset_cglow(12)
         self.assertEqual(cglow.zz.size, 12)
-        glowpython.reset_cglow(self.jmax)
+        glowpython2.reset_cglow(self.jmax)
         self.assertEqual(cglow.zz.size, self.jmax)
 
     def test_dataset(self):
-        glowpython.reset_cglow(self.jmax)
-        ds = glowpython.get_dataset()
+        glowpython2.reset_cglow(self.jmax)
+        ds = glowpython2.get_dataset()
         self.assertTrue((ds.E == cglow.ener).all())
 
     def test_data_dir(self):

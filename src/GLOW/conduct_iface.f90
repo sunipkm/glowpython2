@@ -21,16 +21,14 @@
 !   hallcond(jmax) - Hall conductivity at each grid point
 
 
-subroutine conduct_iface(jmax, alt, pedcond, hallcond)
-    use cglow, only: glat, glong 
-    use cglow, only: zo, zo2, zn2, zxden, ztn, zti, zte
+subroutine conduct_iface(jmax, pedcond, hallcond)
+    use cglow, only: zo, zo2, zn2, zxden, ztn, zti, zte, bmag
     implicit none
     integer, intent(in) :: jmax
-    real, intent(in) :: alt(jmax)
     real, intent(inout) :: pedcond(jmax), hallcond(jmax)
     integer :: j
     do j = 1, jmax
-        call conduct(glat, glong, alt(j), &
+        call conduct(bmag(j), &
                      zo(j), zo2(j), zn2(j), &
                      zxden(3, j), zxden(6, j), &
                      zxden(7, j), &

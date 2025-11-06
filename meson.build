@@ -2,7 +2,7 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-project('glowpython', 'c',
+project('glowpython2', 'c',
   version : '1.0',
   license: 'BSD-3',
   meson_version: '>=0.64.0',
@@ -28,7 +28,7 @@ incdir_f2py = run_command(py,
     check : true
 ).stdout().strip()
 
-fortran_srcs = [
+glow_fort_srcs = [
   'src/GLOW/cglow.f90', 
   'src/GLOW/glow.f90', 
   'src/GLOW/bands.f90', 
@@ -57,7 +57,7 @@ fortran_srcs = [
 ]
 
 glowpython_source = custom_target('glowfortmodule.c',
-  input : fortran_srcs,
+  input : glow_fort_srcs,
   output : ['glowfortmodule.c', 'glowfort-f2pywrappers.f', 'glowfort-f2pywrappers2.f90'],
   command : [py, '-m', 'numpy.f2py', '@INPUT@', '-m', 'glowfort', '--lower']
 )
@@ -82,7 +82,7 @@ install_subdir(
 inc_np = include_directories(incdir_numpy, incdir_f2py)
 
 py.extension_module('glowfort',
-  fortran_srcs + [glowpython_source],
+  glow_fort_srcs + [glowpython_source],
   incdir_f2py / 'fortranobject.c',
   include_directories: inc_np,
   dependencies : py_dep,

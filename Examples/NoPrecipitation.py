@@ -2,8 +2,8 @@
 """
 no particle precipitation
 """
-import glowpython as glow
-import glowpython.plots as plot
+import glowpython2 as glow
+import glowpython2.plots as plot
 from datetime import datetime
 from matplotlib.pyplot import show
 

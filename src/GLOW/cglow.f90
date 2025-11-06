@@ -24,8 +24,11 @@ module cglow
 !    >    ZZ(JMAX), ZO(JMAX), ZN2(JMAX), ZO2(JMAX), ZNO(JMAX),
 !    >    ZNS(JMAX), ZND(JMAX), ZRHO(JMAX), ZE(JMAX),
 !    >    ZTN(JMAX), ZTI(JMAX), ZTE(JMAX),
+!    >    BMAG(JMAX) [Magnetic field in TESLA not GAUSS, multiply FIELDM
+!         RESULT BY 1.0e-4]
 !    >    PHITOP(NBINS), EFLUX(NF), EZERO(NF),
-!    >    SZA, DIP, EFRAC, IERR,
+!    >    SZA, DIP(JMAX) [Radians], 
+!    >    EFRAC, IERR,
 !    >    ZMAJ(NMAJ,JMAX), ZCOL(NMAJ,JMAX),
 !    >    WAVE1(LMAX), WAVE2(LMAX), SFLUX(LMAX),
 !    >    ENER(NBINS), EDEL(NBINS),
@@ -72,12 +75,13 @@ module cglow
 
   integer :: idate,iscale,jlocal,kchem,ierr
   real    :: ut,glat,glong,f107,f107a,f107p,ap,ef,ec
-  real    :: xuvfac, sza, dip, efrac
+  real    :: xuvfac, sza, efrac
   real,dimension(nw) :: vcb
 
   real,allocatable,dimension(:) ::             &                      ! (jmax)
     zz, zo, zn2, zo2, zno, zns, znd, zrho, ze, &
-    ztn, zti, zte, eheat, tez, ecalc, tei, tpi, tir
+    ztn, zti, zte, eheat, tez, ecalc, tei, tpi,&
+    tir, bmag, dip
   real(wp),allocatable,dimension(:) :: phitop, ener, edel             ! (nbins)
   real,allocatable,dimension(:)     :: wave1, wave2, sflux            ! (lmax)
   real,allocatable,dimension(:)     :: sf_rflux, sf_scale1, sf_scale2 ! (lmax)
@@ -100,11 +104,6 @@ module cglow
     ww,ao,omeg,anu,bb,auto,thi,ak,aj,ts,ta,tb,gams,gamb
 
   real(wp), allocatable, dimension(:,:) :: production, loss  ! gchem.f90
-
-  real :: snoem_zin(16)          ! altitude grid
-  real :: snoem_mlatin(33)       ! magnetic latitude grid
-  real :: snoem_no_mean(33,16)   ! mean nitric oxide distribution
-  real :: snoem_eofs(33,16,3)    ! empirical orthogonal functions
 
   contains
 
@@ -266,9 +265,6 @@ module cglow
     sigion(:,:) = 0.
     sigabs(:,:) = 0.
     endif
-
-    ! Does not depend on anything
-    call snoem_init()              ! initialize snoem
   end subroutine cglow_static_init
 
   subroutine cglow_static_deinit
@@ -299,7 +295,9 @@ module cglow
        tei  (jmax), &
        tpi  (jmax), &
        tir  (jmax), &
-       ecalc(jmax) &
+       ecalc(jmax), &
+       bmag (jmax), &
+       dip  (jmax), &
     )
 
     allocate(zxden(nex,jmax), &
@@ -391,6 +389,8 @@ module cglow
     if (allocated(phono)) deallocate(phono)
     if (allocated(photoi)) deallocate(photoi)
     if (allocated(photod)) deallocate(photod)
+    if (allocated(bmag)) deallocate(bmag)
+    if (allocated(dip)) deallocate(dip)
   end subroutine cglow_dynamic_dealloc
 
   subroutine cglow_dynamic_zero
@@ -442,6 +442,7 @@ module cglow
        siga(:,:,:)  =0.
        sec (:,:,:)  =0.
        iimaxx(:)    =0.
+       bmag(:)      =0.
 
   end subroutine cglow_dynamic_zero
 

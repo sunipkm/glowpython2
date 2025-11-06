@@ -4,7 +4,7 @@ import numpy as np
 import pytz
 from tqdm.contrib.concurrent import process_map, thread_map
 from multiprocessing import Pool
-from glowpython import no_precipitation, generic
+from glowpython2 import no_precipitation, generic
 from functools import partial
 import sys
 

@@ -6,8 +6,10 @@
 
 ! Version 0.98, 1/2017
 ! Version 0.981, 6/2017
+! Version 0.99, 11/2025
 
 ! Stan Solomon, 1988, 1989, 1990, 1991, 1992, 1994, 2000, 2002, 2005, 2015, 2016
+! Sunip K. Mukherjee, 2025
 !
 ! Subroutine GLOW is the master routine of the /glow package.
 ! It receives input parameters from the calling program using use-associated variables
@@ -20,7 +22,6 @@
 ! Call subroutine MAXT before call to GLOW to specify auroral electron flux (if any)
 
 ! Subroutines called by GLOW are:
-!   FIELDM  calculates magnetic dip angle
 !   SOLZEN  calculates solar zenith angle
 !   SSFLUX  scales solar flux for activity level
 !   RCOLUM  calculates slant column density of major species
@@ -32,43 +33,36 @@
 !   BANDS   calculates vibrational distributions for selected band systems (currently only LBH)
 
 ! Supplied to subroutine using use-associated data defined in module CGLOW:
-! IDATE   Date, in form yyddd
-! UT      Universal Time; seconds
-! GLAT    Geographic latitude; degrees
-! GLONG   Geographic longitude; degrees
+! IDATE          Date, in form yyddd
+! UT             Universal Time; seconds
+! GLAT           Geographic latitude; degrees
+! GLONG          Geographic longitude; degrees
+! F107           Solar 10.7 cm flux for day being modeled, 1.E-22 W m-2 Hz-1 (sfu)
+! F107A          Solar 10.7 cm flux 81-day centered average
+! ZZ(JMAX)       altitude array; cm
+! DIP(JMAX)      magnetic field dip angle; radians
+! ZO(JMAX)       O number density at each altitude; cm-3
+! ZN2(JMAX)      N2  "      "      "   "     "       "
+! ZO2(JMAX)      O2         "
+! ZNO(JMAX)      NO         "
+! ZNS(JMAX)      N(4S)      "
+! ZND(JMAX)      N(2D)      " [UNUSED, calculated by GLOW]
+! ZRHO(JMAX)     mass density at each altitude; gm cm-3 [UNUSED]
+! ZE(JMAX)       electron density at each alt; cm-3
+! ZTN(JMAX)      neutral temperature at each alt; K
+! ZTI(JMAX)      ion temperature at each alt; K
+! ZTE(JMAX)      electron temp at each alt; K
+! PHITOP(NBINS)  energetic electron flux into top of atmosphere; cm-2 s-1 eV-1
+
+! Configuration flags
 ! ISCALE  Solar flux scaling switch, see subroutine SSFLUX
 ! JLOCAL  =0 for electron transport calculation, =1 for local calc only
 ! KCHEM   Ion/electron chemistry switch, see subroutine GCHEM
-! F107    Solar 10.7 cm flux for day being modeled, 1.E-22 W m-2 Hz-1
-! F107A   Solar 10.7 cm flux 81-day centered average
 ! XUVFAC  Factor by which to multiply to solar flux 16-250 A or 16-50 A.
-! ZZ      altitude array; cm
-! ZO      O number density at each altitude; cm-3
-! ZN2     N2  "      "      "   "     "       "
-! ZO2     O2         "
-! ZNO     NO         "
-! ZNS     N(4S)      "
-! ZND     N(2D)      "
-! ZRHO    mass density at each altitude; gm cm-3 (not currently in use)
-! ZE      electron density at each alt; cm-3
-! ZTN     neutral temperature at each alt; K
-! ZTI     ion temperature at each alt; K
-! ZTE     electron temp at each alt; K
-! PHITOP  energetic electron flux into top of atmosphere; cm-2 s-1 eV-1
 
 ! Calculated by subroutine and returned using use-associated data defined in module CGLOW:
-! SZA     solar zenith angle; radians
-! DIP     magnetic field dip angle; radians
-! EFRAC   energy conservation check from ETRANS, (out-in)/in
-! IERR    error code returned from ETRANS:
-!           0=normal, 1=local problem, 2=transport problem
 ! ZMAJ    major species density array, O, O2, N2; cm-3
 ! ZCOL    major species slant column density array, O, O2, N2; cm-2
-! WAVE1   longwave edge of solar flux wavelength range; A
-! WAVE2   shortwave edge of solar flux wavelength range; A
-! SFLUX   scaled solar flux in each wavelength range; photons cm-2 s-1
-! ENER    electron energy grid; eV
-! EDEL     width of each bin in electron energy grid; eV
 ! PESPEC  photoelectron production rate at energy, altitude; cm-3 s-1
 ! PIA     proton aurora ionization rate (not currently in use); cm-3 s-1.
 ! SESPEC  proton aurora secondary electron production rate (not currently in use); cm-3 s-1
@@ -103,6 +97,17 @@
 !           7774A, 8446A, 3726A, LBH, 1356, 1493, 1304; cm-3 s-1
 ! ZCETA   array of contributions to each v.e.r at each alt; cm-3 s-1
 ! VCB     array of vertical column brightnesses (as above); Rayleighs
+
+! Additionally,
+! SZA     solar zenith angle; radians
+! EFRAC   energy conservation check from ETRANS, (out-in)/in
+! IERR    error code returned from ETRANS:
+!           0=normal, 1=local problem, 2=transport problem
+! WAVE1   longwave edge of solar flux wavelength range; A
+! WAVE2   shortwave edge of solar flux wavelength range; A
+! SFLUX   scaled solar flux in each wavelength range; photons cm-2 s-1
+! ENER    electron energy grid; eV
+! EDEL     width of each bin in electron energy grid; eV
 
 ! Array dimensions:
 ! JMAX    number of altitude levels
@@ -142,8 +147,9 @@
 
 ! Find magnetic dip angle and solar zenith angle (radians):
 
-      call fieldm (glat, glong, 300., xf, yf, zf, ff, dip, dec, sdip) ! rust alternative exists
-      dip = abs(dip) * pi/180.
+      ! NOTE: dip now needs to be supplied separately, in radians, absolute value
+      ! call fieldm (glat, glong, 300., xf, yf, zf, ff, dip, dec, sdip) ! rust alternative exists
+      ! dip = abs(dip) * pi/180.
       if (dip < 0.01) dip=0.01
 
       call solzen (idate, ut, glat, glong, sza) ! rust alternative exists

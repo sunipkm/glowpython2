@@ -37,16 +37,16 @@
 !     nu_nop   ! [[nop~o2]n(o2)+[nop~o]n(o)+[nop~n2]n(n2)]
 !     nu_ne    ! electron~neutral
 
-    SUBROUTINE CONDUCT(lat, long, alt, nO, nO2, nN2, nOp, nO2p, nNOp, &
+    SUBROUTINE CONDUCT(Bmagn, nO, nO2, nN2, nOp, nO2p, nNOp, &
                          Tn, Ti, Te, PedCond, HallCond)
 
       implicit none
 
-      real, intent(in) :: lat,long,alt,nOp,nO2p,nNOp
+      real, intent(in) :: nOp,nO2p,nNOp
       real, intent(in) :: Tn, Te, Ti, nO, nO2, nN2
       real, intent(out) :: PedCond, HallCond
 
-      real :: XFmag, YFmag, ZFmag, Bmagn, DIPmag, DECmag, SDIPmag
+      real :: Bmagn
       real :: om_Op, om_O2p, om_NOp, om_e
       real :: nu_O2pO2, nu_OpO2, nu_NOpO2, nu_OpO, nu_NOpO, nu_O2pO
       real :: nu_O2pN2, nu_NOpN2, nu_OpN2, nu_O2p, nu_Op, nu_NOp, nu_en
@@ -63,8 +63,8 @@
 
 ! Calculate magnetic field strength and convert to from Gauss to Tesla:
 
-      call FIELDM (lat,long,alt,XFmag,YFmag,ZFmag,Bmagn,DIPmag,DECmag, SDIPmag)
-      Bmagn = Bmagn*1.e-4
+      ! call FIELDM (lat,long,alt,XFmag,YFmag,ZFmag,Bmagn,DIPmag,DECmag, SDIPmag)
+      ! Bmagn = Bmagn*1.e-4
       
 ! Calculate gyro frequencies Using Tesla, Coulomb, and m^-3:
           

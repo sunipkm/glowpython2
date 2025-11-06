@@ -56,96 +56,108 @@
 ! nei     number of states produced by electron impact
 
 
-  subroutine etrans
+subroutine etrans
 
-    use cglow,only: nmaj,nbins,jmax,nei,ierr,jlocal, &
-                    dip,ener,edel,aglw,eheat,sion,phitop,zz,pespec, &
-                    sespec,zte,ze,zmaj,uflx,dflx,tez,efrac           ! formerly /cglow/
-    use cglow,only: siga,sigs,pe,sigex,sec,iimaxx,pin                ! formerly /cxsect/
-    use cglow,only: ww                                               ! formerly /cxpars/
+   use cglow,only: nmaj,nbins,jmax,nei,ierr,jlocal, &
+      dip,ener,edel,aglw,eheat,sion,phitop,zz,pespec, &
+      sespec,zte,ze,zmaj,uflx,dflx,tez,efrac           ! formerly /cglow/
+   use cglow,only: siga,sigs,pe,sigex,sec,iimaxx,pin                ! formerly /cxsect/
+   use cglow,only: ww                                               ! formerly /cxpars/
 
-    implicit none
+   implicit none
 
-    ! integer,save :: ifirst=1
-    integer :: ii,ibb,i,n,jj,j,k,jjj4,iv,ll,kk,im,iq
-    real :: prod(jmax), eprod(jmax), t1(jmax), t2(jmax), tsa(nmaj), &
-            produp(jmax,nbins), prodwn(jmax,nbins), &
-            phiup(jmax), phidwn(jmax), tsigne(jmax), taue(jmax), &
-            secion(jmax), secp(nmaj,jmax), r1(jmax), expt2(jmax), &
-            produa(jmax), prodda(jmax), phiinf(nbins), potion(nmaj), &
-            alpha(jmax),beta(jmax),gamma(jmax),psi(jmax),del2(jmax), &
-            delp(jmax),delm(jmax),dels(jmax),den(jmax), &
-            delz(jmax),dela(jmax)
-    real :: sindip,rmusin,phiout,dag,et,eet,fluxj,edep,epe,ephi,aprod,ein,eout,fac
-    real,parameter :: avmu=0.5
+   ! integer,save :: ifirst=1
+   integer :: ii,ibb,i,n,jj,j,k,jjj4,iv,ll,kk,im,iq
+   real :: prod(jmax), eprod(jmax), t1(jmax), t2(jmax), tsa(nmaj), &
+      produp(jmax,nbins), prodwn(jmax,nbins), &
+      phiup(jmax), phidwn(jmax), tsigne(jmax), taue(jmax), &
+      secion(jmax), secp(nmaj,jmax), r1(jmax), expt2(jmax), &
+      produa(jmax), prodda(jmax), phiinf(nbins), potion(nmaj), &
+      alpha(jmax),beta(jmax),gamma(jmax),psi(jmax),del2(jmax), &
+      delp(jmax),delm(jmax),dels(jmax),den(jmax), &
+      delz(jmax),dela(jmax)
+   real :: sindip,rmusin(jmax),phiout,dag,et,eet,fluxj,edep,epe,ephi,&
+      aprod,ein,eout,fac,rmu300,ddip
+   logical :: flag = .false.
+   real,parameter :: avmu=0.5
 
+   potion = (/16.,16.,18./)
+   ierr = 0
+   fac = 0.
 
-    potion = (/16.,16.,18./)
-    ierr = 0
-    fac = 0.
-    sindip = sin(dip)
-    rmusin = 1. / sindip / avmu
-    psi(1)   = 1.
-    ! First call only:  calculate cross-sectons:
-    ! if (ifirst == 1) then
-      ! call exsect (ener, edel)
-      ! ifirst = 0
-    ! endif
-    ! Zero variables:
-    alpha(1) = 0.
-    beta(1) = 0.
-    gamma(1) = 0.
-    phiout = 0.0
-    eheat(:) = 0.0
-    eprod(:) = 0.0
-    secion(:) = 0.0
-    sion(:,:) = 0.0
-    aglw(:,:,:) = 0.0
-    produp(:,:) = 1.0e-20
-    prodwn(:,:) = 1.0e-20
-    ! Divide downward flux at top of atmos. by average pitch angle cosine:
-    phiinf(:) = phitop(:) / avmu
-    ! Calculate delta z's:
-    delz(1) = zz(2)-zz(1)
-    do i=2,jmax
+   ! Calculate sin of dip angle and RMU
+   do i=1,jmax
+      ddip = abs(dip(i))
+      if (ddip .le. 0.01) ddip = 0.01
+      sindip = sin(ddip)
+      rmusin(i) = 1. / sindip / avmu
+      if (.not. flag .and. (zz(i) .ge. 300.0e5)) then
+         flag = .true.
+         rmu300 = rmusin(i)
+      endif
+   enddo
+
+   psi(1)   = 1.
+   ! First call only:  calculate cross-sectons:
+   ! if (ifirst == 1) then
+   ! call exsect (ener, edel)
+   ! ifirst = 0
+   ! endif
+   ! Zero variables:
+   alpha(1) = 0.
+   beta(1) = 0.
+   gamma(1) = 0.
+   phiout = 0.0
+   eheat(:) = 0.0
+   eprod(:) = 0.0
+   secion(:) = 0.0
+   sion(:,:) = 0.0
+   aglw(:,:,:) = 0.0
+   produp(:,:) = 1.0e-20
+   prodwn(:,:) = 1.0e-20
+   ! Divide downward flux at top of atmos. by average pitch angle cosine:
+   phiinf(:) = phitop(:) / avmu
+   ! Calculate delta z's:
+   delz(1) = zz(2)-zz(1)
+   do i=2,jmax
       delz(i) = zz(i)-zz(i-1)
-    enddo
+   enddo
 
-    do i=1,jmax-1
+   do i=1,jmax-1
       del2(i) = delz(i)+delz(i+1)
       dela(i) = del2(i)/2.
       delp(i) = dela(i)*delz(i+1)
       delm(i) = dela(i)*delz(i)
       dels(i) = delz(i)*delz(i+1)
-    enddo
+   enddo
 
-    del2(jmax) = del2(jmax-1)
-    dela(jmax) = dela(jmax-1)
-    delp(jmax) = delp(jmax-1)
-    delm(jmax) = delp(jmax-1)
-    dels(jmax) = dels(jmax-1)
+   del2(jmax) = del2(jmax-1)
+   dela(jmax) = dela(jmax-1)
+   delp(jmax) = delp(jmax-1)
+   delm(jmax) = delp(jmax-1)
+   dels(jmax) = dels(jmax-1)
 
-    ! Top of energy loop:
-    do j=nbins,1,-1
+   ! Top of energy loop:
+   do j=nbins,1,-1
       ! Calculate production:
       do i = 1, jmax
-        prod(i) = (pespec(j,i)+sespec(j,i)) * rmusin / edel(j)
-        eprod(i) = eprod(i) + prod(i) * ener(j) * edel(j) / rmusin
+         prod(i) = (pespec(j,i)+sespec(j,i)) * rmusin(i) / edel(j)
+         eprod(i) = eprod(i) + prod(i) * ener(j) * edel(j) / rmusin(i)
       enddo
 !
 ! Total energy loss cross section for each species:
 !
       tsa(:) = 0.0
       if (j > 1) then
-        do k = 1, j-1
-          do i = 1, nmaj
-            tsa(i) = tsa(i) + siga(i,k,j) * (edel(j-k)/edel(j))
-          enddo
-        enddo
+         do k = 1, j-1
+            do i = 1, nmaj
+               tsa(i) = tsa(i) + siga(i,k,j) * (edel(j-k)/edel(j))
+            enddo
+         enddo
       else
-        do i=1,nmaj
-          tsa(i) = tsa(i) + siga(i,1,j) + 1.e-18
-        enddo
+         do i=1,nmaj
+            tsa(i) = tsa(i) + siga(i,1,j) + 1.e-18
+         enddo
       endif
       !
       ! Thermal electron energy loss:
@@ -156,95 +168,95 @@
       if (dag <= 0.0) dag = edel(1)
       !
       do i = 1, jmax
-        et = 8.618e-5 * zte(i) ! Boltzmann Constant in eV/K
-        eet = ener(j) - et
-        if (eet <= 0.0) then
-          tsigne(i) = 0.0
-        else  
-          tsigne(i) = ((3.37e-12*ze(i)**0.97)/(ener(j)**0.94)) &
-                    * ((eet)/(ener(j) - (0.53*et))) ** 2.36
-        endif
-        tsigne(i) = tsigne(i) * rmusin / dag
+         et = 8.618e-5 * zte(i) ! Boltzmann Constant in eV/K
+         eet = ener(j) - et
+         if (eet <= 0.0) then
+            tsigne(i) = 0.0
+         else
+            tsigne(i) = ((3.37e-12*ze(i)**0.97)/(ener(j)**0.94)) &
+               * ((eet)/(ener(j) - (0.53*et))) ** 2.36
+         endif
+         tsigne(i) = tsigne(i) * rmusin(i) / dag
       enddo
       !
       ! Collision terms:
       !
       do i = 1, jmax
-        t1(i) = 0.0
-        t2(i) = 0.0
-        do iv = 1, nmaj
-          t1(i) = t1(i) + zmaj(iv,i) * sigs(iv,j) * pe(iv,j)
-          t2(i) = t2(i) + zmaj(iv,i) * (sigs(iv,j)*pe(iv,j) + tsa(iv))
-        enddo
-        t1(i) = t1(i) * rmusin
-        t2(i) = t2(i) * rmusin + tsigne(i)
+         t1(i) = 0.0
+         t2(i) = 0.0
+         do iv = 1, nmaj
+            t1(i) = t1(i) + zmaj(iv,i) * sigs(iv,j) * pe(iv,j)
+            t2(i) = t2(i) + zmaj(iv,i) * (sigs(iv,j)*pe(iv,j) + tsa(iv))
+         enddo
+         t1(i) = t1(i) * rmusin(i)
+         t2(i) = t2(i) * rmusin(i) + tsigne(i)
       enddo
       !
       ! Bypass next section if local calculation was specified:
       !
       if (jlocal /= 1) then
-        !
-        ! Solve parabolic d.e. by Crank-Nicholson method to find downward flux:
-        !
-        do i = 2, jmax-1
-          psi(i) = 1.
-          alpha(i) = (t1(i-1) - t1(i+1)) / (del2(i) * t1(i))
-          beta(i) = t2(i) * (t1(i+1) - t1(i-1)) / (t1(i) * del2(i)) &
-                  - (t2(i+1) - t2(i-1)) / del2(i) - t2(i)**2 + t1(i)**2
-          if (prod(i) < 1.e-30) prod(i) = 1.e-30
-          if (prodwn(i,j) < 1.e-30) prodwn(i,j) = 1.e-30
-          gamma(i) = (prod(i)/2.0) * (-t1(i) - t2(i) - alpha(i) &
-                   - (prod(i+1) - prod(i-1))/prod(i)/del2(i)) &
-                   + prodwn(i,j) * (-alpha(i) - t2(i) &
-                   - (prodwn(i+1,j)-prodwn(i-1,j))/prodwn(i,j)/del2(i)) &
-                   - produp(i,j) * t1(i)
-        enddo
-        if (abs(beta(2)) < 1.e-20) then
-          beta(2) = 1.e-20
-          ierr = 2
-        endif
-        phidwn(2) = gamma(2) / beta(2)
-        den(1) = phidwn(2)
-        fluxj = phiinf(j)
-        call impit(jmax,fluxj,fac,alpha,beta,gamma,psi,del2,delp,delm,dels,den)
-        phidwn(:) = den(:)
-        !
-        ! Apply lower boundary condition: phiup=phidwn.  Should be nearly zero.
-        !
-        phiup(1) = phidwn(1)
-        !
-        ! Integrate back upward to calculate upward flux:
-        !
-        do i = 2, jmax
-          r1(i) = (t1(i)*phidwn(i) + (prod(i)+2.*produp(i,j))/2.) / t2(i)
-          taue(i) = t2(i)*delz(i)
-          if (taue(i) > 60.) taue(i)=60.
-          expt2(i) = exp(-taue(i))
-        enddo
-        do i=2,jmax
-          phiup(i) = r1(i) + (phiup(i-1)-r1(i)) * expt2(i)
-        enddo
+         !
+         ! Solve parabolic d.e. by Crank-Nicholson method to find downward flux:
+         !
+         do i = 2, jmax-1
+            psi(i) = 1.
+            alpha(i) = (t1(i-1) - t1(i+1)) / (del2(i) * t1(i))
+            beta(i) = t2(i) * (t1(i+1) - t1(i-1)) / (t1(i) * del2(i)) &
+               - (t2(i+1) - t2(i-1)) / del2(i) - t2(i)**2 + t1(i)**2
+            if (prod(i) < 1.e-30) prod(i) = 1.e-30
+            if (prodwn(i,j) < 1.e-30) prodwn(i,j) = 1.e-30
+            gamma(i) = (prod(i)/2.0) * (-t1(i) - t2(i) - alpha(i) &
+               - (prod(i+1) - prod(i-1))/prod(i)/del2(i)) &
+               + prodwn(i,j) * (-alpha(i) - t2(i) &
+               - (prodwn(i+1,j)-prodwn(i-1,j))/prodwn(i,j)/del2(i)) &
+               - produp(i,j) * t1(i)
+         enddo
+         if (abs(beta(2)) < 1.e-20) then
+            beta(2) = 1.e-20
+            ierr = 2
+         endif
+         phidwn(2) = gamma(2) / beta(2)
+         den(1) = phidwn(2)
+         fluxj = phiinf(j)
+         call impit(jmax,fluxj,fac,alpha,beta,gamma,psi,del2,delp,delm,dels,den)
+         phidwn(:) = den(:)
+         !
+         ! Apply lower boundary condition: phiup=phidwn.  Should be nearly zero.
+         !
+         phiup(1) = phidwn(1)
+         !
+         ! Integrate back upward to calculate upward flux:
+         !
+         do i = 2, jmax
+            r1(i) = (t1(i)*phidwn(i) + (prod(i)+2.*produp(i,j))/2.) / t2(i)
+            taue(i) = t2(i)*delz(i)
+            if (taue(i) > 60.) taue(i)=60.
+            expt2(i) = exp(-taue(i))
+         enddo
+         do i=2,jmax
+            phiup(i) = r1(i) + (phiup(i-1)-r1(i)) * expt2(i)
+         enddo
 
       else
-      !
-      ! Local calculation only:
-      !
-        do i = 1, jmax
-          if (t2(i) <= t1(i)) then
-            ierr = 1
-            t2(i) = t1(i) * 1.0001
-          endif
-          phiup(i) = (prod(i)/2.0 + produp(i,j)) / (t2(i) - t1(i))
-          phidwn(i) = (prod(i)/2.0 + prodwn(i,j)) / (t2(i) - t1(i))
-        enddo
+         !
+         ! Local calculation only:
+         !
+         do i = 1, jmax
+            if (t2(i) <= t1(i)) then
+               ierr = 1
+               t2(i) = t1(i) * 1.0001
+            endif
+            phiup(i) = (prod(i)/2.0 + produp(i,j)) / (t2(i) - t1(i))
+            phidwn(i) = (prod(i)/2.0 + prodwn(i,j)) / (t2(i) - t1(i))
+         enddo
 
       endif
       !
       ! Multiply fluxes by average pitch angle cosine and put in arrays:
       !
       do i=1,jmax
-        uflx(j,i) = phiup(i) * avmu
-        dflx(j,i) = phidwn(i) * avmu
+         uflx(j,i) = phiup(i) * avmu
+         dflx(j,i) = phidwn(i) * avmu
       enddo
       !
       !  Calculate outgoing electron energy flux for conservation check:
@@ -254,141 +266,141 @@
       ! Cascade production:
       !
       if (j > 1) then
-        do k = 1, j-1
-          ll = j - k
-          produa(:)=0.
-          prodda(:)=0.
-          do n = 1, nmaj
-            do i=1,jmax
-              produa(i) = produa(i) &
-                         + zmaj(n,i) * (siga(n,k,j)*pin(n,j)*phidwn(i) &
-                         + (1. - pin(n,j))*siga(n,k,j)*phiup(i))
-              prodda(i) = prodda(i) &
-                         + zmaj(n,i) * (siga(n,k,j)*pin(n,j)*phiup(i) &
-                         + (1. - pin(n,j))*siga(n,k,j)*phidwn(i))
+         do k = 1, j-1
+            ll = j - k
+            produa(:)=0.
+            prodda(:)=0.
+            do n = 1, nmaj
+               do i=1,jmax
+                  produa(i) = produa(i) &
+                     + zmaj(n,i) * (siga(n,k,j)*pin(n,j)*phidwn(i) &
+                     + (1. - pin(n,j))*siga(n,k,j)*phiup(i))
+                  prodda(i) = prodda(i) &
+                     + zmaj(n,i) * (siga(n,k,j)*pin(n,j)*phiup(i) &
+                     + (1. - pin(n,j))*siga(n,k,j)*phidwn(i))
+               enddo
             enddo
-          enddo
-          do i=1,jmax
-            produp(i,ll) = produp(i,ll) + produa(i) * rmusin
-            prodwn(i,ll) = prodwn(i,ll) + prodda(i) * rmusin
-          enddo
-        enddo
+            do i=1,jmax
+               produp(i,ll) = produp(i,ll) + produa(i) * rmusin(i)
+               prodwn(i,ll) = prodwn(i,ll) + prodda(i) * rmusin(i)
+            enddo
+         enddo
       endif
       kk = j - 1
       if (kk > 0) then
-        do i = 1, jmax
-          produp(i,kk) = produp(i,kk)+tsigne(i)*phiup(i)*(edel(j)/edel(kk))
-          prodwn(i,kk) = prodwn(i,kk)+tsigne(i)*phidwn(i)*(edel(j)/edel(kk))
-        enddo
+         do i = 1, jmax
+            produp(i,kk) = produp(i,kk)+tsigne(i)*phiup(i)*(edel(j)/edel(kk))
+            prodwn(i,kk) = prodwn(i,kk)+tsigne(i)*phidwn(i)*(edel(j)/edel(kk))
+         enddo
       endif
       !
       ! Electron heating rate:
       !
       dag = edel(j)
       do i = 1, jmax
-        eheat(i) = eheat(i) + tsigne(i) * (phiup(i)+phidwn(i)) * dag**2
+         eheat(i) = eheat(i) + tsigne(i) * (phiup(i)+phidwn(i)) * dag**2
       enddo
       !
       ! Electron impact excitation rates:
       !
       do ii = 1, jmax
-        do i = 1, nmaj
-          do ibb = 1, nei
-            aglw(ibb,i,ii) = aglw(ibb,i,ii) + (phiup(ii) + phidwn(ii)) &
-                             * sigex(ibb,i,j) * edel(j) * zmaj(i,ii)
-          enddo
-        enddo
+         do i = 1, nmaj
+            do ibb = 1, nei
+               aglw(ibb,i,ii) = aglw(ibb,i,ii) + (phiup(ii) + phidwn(ii)) &
+                  * sigex(ibb,i,j) * edel(j) * zmaj(i,ii)
+            enddo
+         enddo
       enddo
       !
       ! Calculate production of secondaries into k bin for energy j bin and add to production:
       !
       do k = 1, iimaxx(j)
-        do n = 1, nmaj
-          do i = 1, jmax
-            secp(n,i) = sec(n,k,j) * zmaj(n,i) * (phiup(i) + phidwn(i))
-            sion(n,i) = sion(n,i) + secp(n,i) * edel(k)
-            secion(i) = secion(i) + secp(n,i) * edel(k)
-            produp(i,k) = produp(i,k) + (secp(n,i)*.5*rmusin)
-            prodwn(i,k) = prodwn(i,k) + (secp(n,i)*.5*rmusin)
-          enddo
-        enddo
+         do n = 1, nmaj
+            do i = 1, jmax
+               secp(n,i) = sec(n,k,j) * zmaj(n,i) * (phiup(i) + phidwn(i))
+               sion(n,i) = sion(n,i) + secp(n,i) * edel(k)
+               secion(i) = secion(i) + secp(n,i) * edel(k)
+               produp(i,k) = produp(i,k) + (secp(n,i)*.5*rmusin(i))
+               prodwn(i,k) = prodwn(i,k) + (secp(n,i)*.5*rmusin(i))
+            enddo
+         enddo
       enddo
 
-    enddo       ! bottom of energy loop
+   enddo       ! bottom of energy loop
 
-      eheat(:) = eheat(:) / rmusin
-      !
-      ! Calculate energy deposited as a function of altitude and total energy deposition:
-      !
-    edep = 0.
-    do im=1,jmax
+   eheat(:) = eheat(:) / rmusin(:)
+   !
+   ! Calculate energy deposited as a function of altitude and total energy deposition:
+   !
+   edep = 0.
+   do im=1,jmax
       tez(im) = eheat(im)
       do ii=1,nmaj
-        tez(im) = tez(im) + sion(ii,im)*potion(ii)
-        do iq=1,nei
-          tez(im) = tez(im) + aglw(iq,ii,im)*ww(iq,ii)
-        enddo
+         tez(im) = tez(im) + sion(ii,im)*potion(ii)
+         do iq=1,nei
+            tez(im) = tez(im) + aglw(iq,ii,im)*ww(iq,ii)
+         enddo
       enddo
       edep = edep + tez(im) * dela(im)
-    enddo
-    !
-    ! Calculate energy input, output, and fractional conservation:
-    !
-    epe = 0.0
-    ephi = 0.0
-    do i = 2, jmax
+   enddo
+   !
+   ! Calculate energy input, output, and fractional conservation:
+   !
+   epe = 0.0
+   ephi = 0.0
+   do i = 2, jmax
       aprod = sqrt(eprod(i)*eprod(i-1))
       epe = epe + aprod * delz(i)
-    enddo
-    do jj = 1, nbins
-      ephi = ephi + phiinf(jj) * ener(jj) * edel(jj) / rmusin
-    enddo
-    ein = ephi + epe
-    phiout = phiout / rmusin
-    eout = edep + phiout
-    efrac = (eout - ein) / ein
+   enddo
+   do jj = 1, nbins
+      ephi = ephi + phiinf(jj) * ener(jj) * edel(jj) / rmu300
+   enddo
+   ein = ephi + epe
+   phiout = phiout / rmu300
+   eout = edep + phiout
+   efrac = (eout - ein) / ein
 
-    return
+   return
 
-  end subroutine etrans
+end subroutine etrans
 
 !-----------------------------------------------------------------------
 
 ! Subroutine impit solves parabolic differential equation by implicit Crank-Nicholson method
 
-  subroutine impit(jmax,fluxj,fac,alpha,beta,gamma,psi,del2,delp,delm,dels,den)
+subroutine impit(jmax,fluxj,fac,alpha,beta,gamma,psi,del2,delp,delm,dels,den)
 
-    implicit none
+   implicit none
 
-    integer,intent(in) :: jmax
-    real,intent(in) :: fluxj,fac,alpha(jmax),beta(jmax),gamma(jmax), &
-               psi(jmax),del2(jmax),delp(jmax),delm(jmax),dels(jmax)
-    real,intent(out) :: den(jmax)
+   integer,intent(in) :: jmax
+   real,intent(in) :: fluxj,fac,alpha(jmax),beta(jmax),gamma(jmax), &
+      psi(jmax),del2(jmax),delp(jmax),delm(jmax),dels(jmax)
+   real,intent(out) :: den(jmax)
 
-    integer :: i1,i,kk,jk
-    real :: dem,k(jmax),l(jmax),a(jmax),b(jmax),c(jmax),d(jmax)
+   integer :: i1,i,kk,jk
+   real :: dem,k(jmax),l(jmax),a(jmax),b(jmax),c(jmax),d(jmax)
 
-    i1 = jmax - 1
-    do i = 1, i1
+   i1 = jmax - 1
+   do i = 1, i1
       a(i) = psi(i) / delp(i) + alpha(i) / del2(i)
       b(i) = -2. * psi(i) / dels(i) + beta(i)
       c(i) = psi(i) / delm(i) - alpha(i) / del2(i)
       d(i) = gamma(i)
-    enddo
-    k(2) = (d(2) - c(2)*den(1)) / b(2)
-    l(2) = a(2) / b(2)
-    do i = 3, i1
+   enddo
+   k(2) = (d(2) - c(2)*den(1)) / b(2)
+   l(2) = a(2) / b(2)
+   do i = 3, i1
       dem = b(i) - c(i) * l(i-1)
       k(i) = (d(i) - c(i)*k(i-1)) / dem
       l(i) = a(i) / dem
-    enddo
-    den(i1) = (k(i1) - l(i1)*fluxj) / (1. + l(i1)*fac)
-    den(jmax) = den(i1)
-    do kk = 1, jmax-3
+   enddo
+   den(i1) = (k(i1) - l(i1)*fluxj) / (1. + l(i1)*fac)
+   den(jmax) = den(i1)
+   do kk = 1, jmax-3
       jk = i1 - kk
       den(jk) = k(jk) - l(jk) * den(jk + 1)
-    enddo
+   enddo
 
-    return
+   return
 
-  end subroutine impit
+end subroutine impit
