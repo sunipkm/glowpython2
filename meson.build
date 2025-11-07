@@ -100,10 +100,10 @@ atmo_static = static_library('atmo',
   install : false,
 )
 
-atmoshim_tgt = custom_target('atmoshimmodule.c',
+atmoshim_tgt = custom_target('glowatmomodule.c',
   input : ['src/ATMO/atmo.f90'],
-  output : ['atmoshimmodule.c', 'atmoshim-f2pywrappers2.f90'],
-  command : [py, '-m', 'numpy.f2py', '@INPUT@', '-m', 'atmoshim', '--lower']
+  output : ['glowatmomodule.c', 'glowatmo-f2pywrappers2.f90'],
+  command : [py, '-m', 'numpy.f2py', '@INPUT@', '-m', 'glowatmo', '--lower']
 )
 
 fieldm_fort_srcs = [
@@ -117,22 +117,22 @@ fieldm_static = static_library('fieldm',
   install : false,
 )
 
-fieldm_tgt = custom_target('fieldmmodule.c',
+fieldm_tgt = custom_target('glowfieldmmodule.c',
   input : ['src/FIELDM/magfield.f90'],
-  output : ['fieldmmodule.c', 'fieldm-f2pywrappers.f'],
-  command : [py, '-m', 'numpy.f2py', '@INPUT@', '-m', 'fieldm', '--lower']
+  output : ['glowfieldmmodule.c', 'glowfieldm-f2pywrappers.f'],
+  command : [py, '-m', 'numpy.f2py', '@INPUT@', '-m', 'glowfieldm', '--lower']
 )
 
 igrf_static = static_library('igrf',
-  ['src/IGRF/igrf.f'],
+  ['src/IGRF/igrf.f', 'src/IGRF/dfp.f90'],
   fortran_args : ['-cpp', '-march=native', '-ffast-math', '-std=legacy'],
   install : false,
 )
 
-igrf_tgt = custom_target('igrfmodule.c',
+igrf_tgt = custom_target('glowigrfmodule.c',
   input : ['src/IGRF/igrf14_shim.f90'],
-  output : ['igrfmodule.c', 'igrf-f2pywrappers2.f90'],
-  command : [py, '-m', 'numpy.f2py', '@INPUT@', '-m', 'igrf', '--lower']
+  output : ['glowigrfmodule.c', 'glowigrf-f2pywrappers2.f90'],
+  command : [py, '-m', 'numpy.f2py', '@INPUT@', '-m', 'glowigrf', '--lower']
 )
 
 py.extension_module('glowfort',

@@ -821,7 +821,7 @@ C                                 = -2, records out of order
 C                                 = FORTRAN run-time error number    
 C ===============================================================               
                                                                                 
-        CHARACTER  FSPEC*(*), FNAM*80, FOUT*256
+        CHARACTER  FSPEC*(*), FNAM*80, FOUT*1024
         CHARACTER(*) DIR                                    
         DIMENSION       GH(196)
         LOGICAL		mess 
@@ -4267,5 +4267,53 @@ C normalization of the vector of the dipole exis of the magnetic field
        XM(3)=YM(1)*ZM(2)-YM(2)*ZM(1)
        RETURN
        END
+
+      SUBROUTINE SUN (IYEAR,IDAY,IHOUR,MIN,ISEC,GST,SLONG,SRASN,SDEC)
+C-----------------------------------------------------------------------------
+C  CALCULATES FOUR QUANTITIES NECESSARY FOR COORDINATE TRANSFORMATIONS
+C  WHICH DEPEND ON SUN POSITION (AND, HENCE, ON UNIVERSAL TIME AND SEASON)
+C
+C-------  INPUT PARAMETERS:
+C  IYR,IDAY,IHOUR,MIN,ISEC -  YEAR, DAY, AND UNIVERSAL TIME IN HOURS, 
+C    MINUTES, AND SECONDS  (IDAY=1 CORRESPONDS TO JANUARY 1).
+C
+C-------  OUTPUT PARAMETERS:
+C  GST - GREENWICH MEAN SIDEREAL TIME, SLONG - LONGITUDE ALONG ECLIPTIC
+C  SRASN - RIGHT ASCENSION,  SDEC - DECLINATION  OF THE SUN (RADIANS)
+C  ORIGINAL VERSION OF THIS SUBROUTINE HAS BEEN COMPILED FROM:
+C  RUSSELL, C.T., COSMIC ELECTRODYNAMICS, 1971, V.2, PP.184-196.
+C
+C  LAST MODIFICATION:  MARCH 31, 2003 (ONLY SOME NOTATION CHANGES)
+C
+C     ORIGINAL VERSION WRITTEN BY:    Gilbert D. Mead
+C-----------------------------------------------------------------------------
+C
+      DOUBLE PRECISION DJ,FDAY
+      COMMON /CONST/UMR,PI
+C
+      IF(IYEAR.LT.1901.OR.IYEAR.GT.2099) RETURN
+      FDAY=DFLOAT(IHOUR*3600+MIN*60+ISEC)/86400.D0
+      DJ=365*(IYEAR-1900)+(IYEAR-1901)/4+IDAY-0.5D0+FDAY
+      T=DJ/36525.
+      VL=DMOD(279.696678+0.9856473354*DJ,360.D0)
+      GST=DMOD(279.690983+.9856473354*DJ+360.*FDAY+180.,360.D0)*UMR
+      G=DMOD(358.475845+0.985600267*DJ,360.D0)*UMR
+      SLONG=(VL+(1.91946-0.004789*T)*SIN(G)+0.020094*SIN(2.*G))*UMR
+      IF(SLONG.GT.6.2831853) SLONG=SLONG-6.2831853
+      IF (SLONG.LT.0.) SLONG=SLONG+6.2831853
+      OBLIQ=(23.45229-0.0130125*T)*UMR
+      SOB=SIN(OBLIQ)
+      SLP=SLONG-9.924E-5
+C
+C   THE LAST CONSTANT IS A CORRECTION FOR THE ANGULAR ABERRATION  
+C   DUE TO THE ORBITAL MOTION OF THE EARTH
+C
+      SIN1=SOB*SIN(SLP)
+      COS1=SQRT(1.-SIN1**2)
+      SC=SIN1/COS1
+      SDEC=ATAN(SC)
+      SRASN=3.141592654-ATAN2(COS(OBLIQ)/SOB*SC,-COS(SLP)/COS1)
+      RETURN
+      END
 C
 C --------------------- end IGRF.FOR ----------------------------------
