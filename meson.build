@@ -92,6 +92,8 @@ atmo_fort_srcs = [
   'src/ATMO/iri90.f',
   'src/ATMO/nrlmsise00.f',
   'src/ATMO/dfp.f90',
+  'src/ATMO/geomag.f90',
+  'src/ATMO/snoem.f90',
 ]
 
 atmo_static = static_library('atmo',
@@ -102,13 +104,12 @@ atmo_static = static_library('atmo',
 
 atmoshim_tgt = custom_target('glowatmomodule.c',
   input : ['src/ATMO/atmo.f90'],
-  output : ['glowatmomodule.c', 'glowatmo-f2pywrappers2.f90'],
+  output : ['glowatmomodule.c', 'glowatmo-f2pywrappers.f'],
   command : [py, '-m', 'numpy.f2py', '@INPUT@', '-m', 'glowatmo', '--lower']
 )
 
 fieldm_fort_srcs = [
   'src/FIELDM/fieldm.f',
-  'src/FIELDM/geomag.f90',
 ]
 
 fieldm_static = static_library('fieldm',

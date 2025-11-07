@@ -42,15 +42,3 @@ subroutine bmagarray_pogo86(year,lat,lon,alt,bmag,nalt)
       bmag(i) = bmag(i)*1.0e-4
    enddo
 end subroutine
-
-subroutine mlatlon_pogo86(year,lat,lon,alt,mlat,mlon)
-   ! Calculate magnetic latitude and longitude using POGO86 model
-   implicit none
-   real, intent(in)  :: year ! Decimal year: Year + (Day of Year)/365 or 366
-   real, intent(in)  :: lat  ! geographic latitude
-   real, intent(in)  :: lon  ! geographic longitude
-   real, intent(in)  :: alt  ! altitude
-   real, intent(out) :: mlat ! magnetic latitude (output)
-   real, intent(out) :: mlon ! magnetic longitude (output)
-   call GEOMAG(0,lon,lat,mlon,mlat)
-end subroutine
