@@ -5,35 +5,17 @@ module glowigrf
 contains
     subroutine igrf_init(direct,logfile)
         implicit none
-        COMMON /CONST/UMR,PI &
-        /IGRF1/ERA,AQUAD,BQUAD,DIMO &
-        /findRLAT/FLON,RYEAR &
-        /iounit/konsol,mess
         character(len=*), intent(in) :: direct ! directory containing data file
         character(len=*), intent(in), optional :: logfile ! log file name
-        real :: umr, pi, era, aquad, bquad, dimo, flon, ryear
-        real :: eexc, erequ, erpol
-        integer :: konsol
-        logical :: mess
-        ! Initialize constants
-        pi=ATAN(1.0)*4.
-        UMR=pi/180.
-        ERA=6371.2
-        EREQU=6378.16
-        ERPOL=6356.775
-        AQUAD=EREQU*EREQU
-        BQUAD=ERPOL*ERPOL
-        EEXC=0.01675
-        dimo=0.311653
-        mess=.false. ! no messages
-        konsol=6 ! standard output unit
-        ! Set data directory
+        integer :: konsol = 6
+        logical :: mess = .false.
         data_dir = trim(direct)
         if (present(logfile)) then
             konsol = 11 ! use log file unit
             mess = .true.  ! enable messages
             open(unit=konsol, file=trim(logfile))
         end if
+        call IGRFINIT(konsol, mess)
     end subroutine igrf_init
 
     subroutine dipangle_igrf(year,lat,lon,alt,dip)
@@ -46,9 +28,7 @@ contains
         real, intent(out) :: dip ! dip angle (output)
         real              :: dec,dipl,ymodip
         if (byear .ne. year) then
-            print *, 'Loading IGRF data for year ', year
             call FELDCOF(year,data_dir)
-            print *, 'IGRF data loaded for year ', year
             byear = year
         end if
         call igrf_dip(lat,lon,year,alt,dec,dip,dipl,ymodip)
