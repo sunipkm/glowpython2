@@ -6,15 +6,15 @@ contains
     subroutine igrf_init(direct,logfile)
         implicit none
         character(len=*), intent(in) :: direct ! directory containing data file
-        character(len=*), intent(in), optional :: logfile ! log file name
+        character(len=*), intent(in) :: logfile ! log file name
         integer :: konsol = 6
         logical :: mess = .false.
         data_dir = trim(direct)
-        if (present(logfile)) then
+        if (trim(logfile) /= '') then
             konsol = 11 ! use log file unit
             mess = .true.  ! enable messages
             open(unit=konsol, file=trim(logfile))
-        end if
+        endif
         call IGRFINIT(konsol, mess)
     end subroutine igrf_init
 
