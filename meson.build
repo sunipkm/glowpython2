@@ -110,6 +110,7 @@ atmoshim_tgt = custom_target('glowatmomodule.c',
 
 fieldm_fort_srcs = [
   'src/FIELDM/fieldm.f',
+  'src/FIELDM/geomag.f90',
 ]
 
 fieldm_static = static_library('fieldm',

@@ -14,7 +14,7 @@ contains
       character(len=1024) :: filepath
       integer :: j,k,n
       data_dir = trim(direct)
-      filepath = trim(data_dir)//'snoem_eof.dat'
+      filepath = trim(data_dir)//'/'//'snoem_eof.dat'
       open(unit=1,file=filepath,status='old',action='read')
       read(1,*) (snoem_zin(k),k=1,16)
       read(1,*) (snoem_mlatin(j),j=1,33)

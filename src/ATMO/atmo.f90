@@ -1,20 +1,27 @@
 subroutine msis00_init(data_dir, sw)
+   use noem, only: snoem_init
    ! Initialize MSIS model data from file
    implicit none
    integer, save :: snoem_initialized = 0
    character(len=*), intent(in) :: data_dir ! directory containing data files
-   integer, intent(in) :: sw(25) ! MSIS switch array
-
-   if (snoem_initialized .ne. 0) then
+   integer, intent(in), optional :: sw(25) ! MSIS switch array
+   integer :: usesw(25)
+   if (present(sw)) then
+      usesw(:) = sw(:)
+   else
+      usesw(:) = 1
+   end if
+   if (snoem_initialized .eq. 0) then
       call snoem_init(data_dir)
       snoem_initialized = 1
    end if
 
-   call tselec(sw)
+   call tselec(usesw)
 end subroutine msis00_init
 
 subroutine msis00_eval(iyd,sec,alt,glat,glong,f107a,f107,ap,&
    d,t,exot,nalt)
+   use noem, only: snoemint
    implicit none
    ! MSIS Legacy subroutine arguments
    integer, intent(in)         :: iyd
@@ -47,24 +54,26 @@ subroutine msis00_eval(iyd,sec,alt,glat,glong,f107a,f107,ap,&
    ! Calculate magnetic latitude
    call GEOMAG(0,glong,glat,mlon,mlat)
    ! Call SNOEMINT to obtain NO profile from the Nitric Oxide Empirical Model (NOEM)
-   call snoemint(iyd, mlat, f107, ap, nalt, alt, t, d(10,:))
+   call snoemint(iyd, mlat, f107, ap(1), nalt, alt, t, d(10,:))
 end subroutine msis00_eval
 
 subroutine iri90_eval(jf,jmag,glat,glong,mmdd,sec,f107a,z,jmax, &
-   iri90_dir,outf,oarr)
+   data_dir,outf,oarr)
    ! jf,jmag,alat,alon,iyyy,mmdd,dhour,zkm,nzkm,outf,oarr
    implicit none
 
    logical,intent(in) :: jf(12)
    integer,intent(in) :: jmag, jmax, mmdd
    real,intent(in) :: glat, glong, f107a, z(jmax), sec
-   character(len=*), intent(in) :: iri90_dir
+   character(len=*), intent(in) :: data_dir
    real,intent(inout) :: oarr(30)
    real,intent(out) :: outf(11,jmax)
-
+   character(len=1024) :: iri90_dir
+   
    integer :: iday, j
    real :: rz12, stl
-
+   
+   iri90_dir = trim(data_dir)//'/iri90/'
    stl = sec/3600. + glong/15.
    if (stl < 0.) stl = stl + 24.
    if (stl >= 24.) stl = stl - 24.

@@ -34,11 +34,23 @@ subroutine bmagarray_pogo86(year,lat,lon,alt,bmag,nalt)
    real, intent(in)    :: lat        ! latitude
    real, intent(in)    :: lon        ! longitude
    real, intent(in)    :: alt(nalt)  ! altitude array
-   real, intent(inout) :: bmag(nalt) ! magnetic field strength array (output)
+   real, intent(inout) :: bmag(nalt) ! magnetic field strength array, Tesla (output)
    real                :: x,y,z,dip,dec,smodip
    integer             :: i
    do i=1,nalt
       call FIELDM(lat,lon,alt(i),x,y,z,bmag(i),dip,dec,smodip)
       bmag(i) = bmag(i)*1.0e-4
    enddo
+end subroutine
+
+subroutine mlatlon_pogo86(year,lat,lon,alt,mlat,mlon)
+   ! Calculate magnetic latitude and longitude using POGO86 model
+   implicit none
+   real, intent(in)  :: year ! Decimal year: Year + (Day of Year)/365 or 366
+   real, intent(in)  :: lat  ! geographic latitude
+   real, intent(in)  :: lon  ! geographic longitude
+   real, intent(in)  :: alt  ! altitude
+   real, intent(out) :: mlat ! magnetic latitude (output)
+   real, intent(out) :: mlon ! magnetic longitude (output)
+   call GEOMAG(0, lon, lat, mlon, mlat)
 end subroutine
