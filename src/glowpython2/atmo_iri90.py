@@ -264,7 +264,9 @@ class Iri90(Singleton):
         time: datetime,
         lat: Numeric, lon: Numeric, alt: np.ndarray,
         f107a: Optional[Numeric] = None,
-        settings: Optional[Settings | ComputedSettings] = None
+        settings: Optional[Settings | ComputedSettings] = None,
+        *,
+        tzaware: bool = False
     ) -> Tuple[ComputedSettings, Dataset]:
         """Evaluate the IRI-90 model.
 
@@ -275,11 +277,12 @@ class Iri90(Singleton):
             alt (np.ndarray): Altitude in kilometers.
             f107a (Optional[Numeric]): 81-day average F10.7 solar flux. If None, it will be retrieved from geomagdata. Defaults to None.
             settings (Optional[Settings  |  ComputedSettings], optional): Settings to use. Defaults to None.
+            tzaware (bool, optional): If time is time zone aware. If true, `time` is recast to 'UTC' using `time.astimezone(pytz.utc)`. Defaults to False.
 
         Returns:
             Tuple[ComputedSettings, Dataset]: Computed settings and dataset. Passing in Settings will return ComputedSettings. For subsequent calls, pass in the returned ComputedSettings to avoid recomputation.
         """
-        if time.tzinfo is not None:
+        if tzaware:
             time = time.astimezone(UTC)
         year, utsec = glowdate(time)
         lon = lon % 360  # ensure lon is in 0-360 range

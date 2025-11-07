@@ -159,13 +159,41 @@ class NrlMsis00(Singleton):
             self._ds_settings += (ds_settings - ds_attrib)*1e-6
             self._total += (ds_settings - start)*1e-6
         return ds
+    
+    @staticmethod
+    def storm_ap(time: datetime, *, tzaware: bool=False) -> np.ndarray:
+        """Compute Storm-time Ap array for given time.
+
+        Args:
+            time (datetime): Datetime object.
+            tzaware (bool, optional): If time is time zone aware. If true, `time` is recast to 'UTC' using `time.astimezone(pytz.utc)`. Defaults to False.
+
+        Returns:
+            np.ndarray: Storm-time Ap array.
+        """
+        if tzaware:
+            time = time.astimezone(UTC)
+        ap = np.zeros(7, dtype=float)
+        tstart = time
+        tstart = tstart.replace(hour=0, minute=0, second=0, microsecond=0)
+        ip = gi.get_indices([tstart + timedelta(hours=hours) for hours in range(0,24,3)], tzaware=tzaware)  # type: ignore
+        ap[0] = ip['Ap'].to_numpy().mean() # Daily average Ap
+        ip = gi.get_indices([time, time-timedelta(hours=3), time-timedelta(hours=6), time-timedelta(hours=9)], tzaware=tzaware)  # type: ignore
+        ap[1:5] = ip['Ap'].to_numpy() # Current and previous 3-hour Ap indices
+        ip = gi.get_indices([time-timedelta(hours=hours) for hours in range(12,36,3)], tzaware=tzaware)  # type: ignore
+        ap[5] = ip['Ap'].to_numpy().mean() # 12 to 36 hours ago average Ap
+        ip = gi.get_indices([time-timedelta(hours=hours) for hours in range(36,60,3)], tzaware=tzaware)  # type: ignore
+        ap[6] = ip['Ap'].to_numpy().mean() # 36 to 60 hours ago average Ap
+        ap = ap.astype(np.float32, order='F')
+        return ap
 
     def evaluate(
         self,
         time: datetime,
         lat: Numeric, lon: Numeric, alt: np.ndarray,
         *,
-        geomag_params: Optional[dict[str, Numeric] | Sequence[Numeric]] = None,
+        geomag_params: Optional[Dict[str, Numeric | np.ndarray]] = None,
+        tzaware: bool = False
     ) -> Dataset:
         """Evaluate the NRLMSISE-00 model.
 
@@ -174,37 +202,44 @@ class NrlMsis00(Singleton):
             lat (Numeric): Geographic latitude.
             lon (Numeric): Geographic longitude.
             alt (np.ndarray): Altitude in kilometers.
-
+            geomag_params (Optional[dict[str, Numeric | np.ndarray]], optional): Geomagnetic parameters. If None, geomagnetic parameters are fetched from `geomagdata` package. If provided, the dictionary must contain keys 'f107a', 'f107', 'f107p', and 'Ap'. 'Ap' can be a single float or an array of 7 floats. Defaults to None.
+            tzaware (bool, optional): If time is time zone aware. If true, `time` is recast to 'UTC' using `time.astimezone(pytz.utc)`. Defaults to False.
         Returns:
             Dataset: Computed dataset.
         """
-        if time.tzinfo is not None:
+        if tzaware:
             time = time.astimezone(UTC)
         ydate, utsec = glowdate(time)
         if geomag_params is None:
             ip = gi.get_indices([time - timedelta(days=1), time],
-                                81, tzaware=True)  # type: ignore
+                                81, tzaware=tzaware)  # type: ignore
             f107a = float(ip["f107s"].iloc[1])
             f107 = float(ip['f107'].iloc[1])
             f107p = float(ip['f107'].iloc[0])
             ap = float(ip["Ap"].iloc[1])
+            if self.settings.ap_mode == 'Storm': # Storm-time Ap mode
+                ap = self.storm_ap(time)
+            else:
+                ap = np.array([ap]*7, dtype=np.float32, order='F')
         elif isinstance(geomag_params, dict):
             f107a = float(geomag_params['f107a'])
             f107 = float(geomag_params['f107'])
             f107p = float(geomag_params['f107p'])
-            ap = float(geomag_params['Ap'])
-        elif isinstance(geomag_params, Sequence):
-            f107a = float(geomag_params[0])
-            f107 = float(geomag_params[1])
-            f107p = float(geomag_params[2])
-            ap = float(geomag_params[3])
+            ap = geomag_params['Ap']
+            if isinstance(ap, np.ndarray):
+                if ap.dtype != np.float32:
+                    ap = ap.astype(np.float32, order='F')
+                if ap.size != 7:
+                    raise RuntimeError('Ap array must be of length 7 for geomag params %s' % str(geomag_params))
+            else:
+                ap = np.array([float(ap)]*7, dtype=np.float32, order='F')
         else:
             raise RuntimeError('Invalid type %s for geomag params %s' % (
                 str(type(geomag_params), str(geomag_params))))
         lon = lon % 360  # ensure lon is in 0-360 range
         ds = self.lowlevel(
             lat, lon, alt, ydate, utsec,
-            f107a, f107p, np.array([ap]*7, dtype=np.float32, order='F')
+            f107a, f107p, ap
         )
         ds.attrs['date'] = time.isoformat()
         return ds
