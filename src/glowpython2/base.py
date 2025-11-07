@@ -8,17 +8,10 @@ import numpy as np
 from xarray import Dataset, Variable
 import xarray
 from .utils import Singleton, alt_grid, glowdate, geocent_to_geodet, interpolate_nan
-from .glowfort import cglow, cglow as cg, mzgrid, maxt, glow, conduct_iface  # type: ignore
+from .glowfort import cglow, cglow as cg, maxt, glow, pyconduct  # type: ignore
 from typing import Any, Iterable, Optional, Sequence, SupportsFloat as Numeric, Tuple, Literal
 import atexit
 import warnings
-
-from multiprocessing import current_process
-
-HmFSource = Literal[
-    'CCIR',
-    'URSI',
-]
 
 FluxSource = Literal[
     'Hinteregger',
@@ -29,7 +22,6 @@ FluxSource = Literal[
 warnings.simplefilter(action='once', category=FutureWarning)
 
 DATA_DIR = path.join(path.dirname(__file__), 'data', '')  # GLOW model ancillary data directory
-IRI90_DIR = path.join(DATA_DIR, 'iri90/')                 # IRI-90 model data directory
 
 cglow.jmax = 0   # initialize this to zero
 cglow.nbins = 0  # initialize this to zero
@@ -54,7 +46,7 @@ def release_cglow():
     cglow.nbins = 0
 
 
-def reset_cglow(jmax: int = None, nbins: int = None) -> None:
+def reset_cglow(jmax: Optional[int] = None, nbins: Optional[int] = None) -> None:
     """## Reset `cglow` module and reallocate all arrays.
 
     ### Args:
@@ -186,6 +178,7 @@ class GlowModel(Singleton):
                     self._z = tmp
         elif isinstance(alt_km, Iterable):
             alt_km = array(alt_km, dtype=float32, order='F')  # always make a copy
+            alt_km.sort()
             if any(alt_km < 60) or any(alt_km > 1000):
                 raise ValueError('Altitude grid must be between 60 and 1000 km')
             if alt_km.ndim != 1:
@@ -394,7 +387,7 @@ class GlowModel(Singleton):
         self._evaluated = False
         return
 
-    def precipitation(self, Q: Numeric = None, Echar: Numeric = None, *,
+    def precipitation(self, Q: Optional[Numeric] = None, Echar: Optional[Numeric] = None, *,
                       itail: bool = False,
                       fmono: Numeric = 0,
                       emono: Numeric = 0):
@@ -709,7 +702,7 @@ class GlowModel(Singleton):
         # ! Call CONDUCT to calculate Pederson and Hall conductivities:
         pedcond = zeros((cg.jmax,), self._z.dtype)
         hallcond = pedcond.copy()
-        conduct_iface(pedcond, hallcond)  # loop in FORTRAN
+        pyconduct(pedcond, hallcond)  # loop in FORTRAN
         # for j in range(cg.jmax):
         #     pedcond[j], hallcond[j] = conduct(cg.glat, cg.glong, self._z[j], cg.zo[j], cg.zo2[j], cg.zn2[j],
         #                                       cg.zxden[2, j], cg.zxden[5, j], cg.zxden[6, j], cg.ztn[j], cg.zti[j], cg.zte[j])
