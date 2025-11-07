@@ -57,8 +57,8 @@ subroutine msis00_eval(iyd,sec,alt,glat,glong,f107a,f107,ap,&
    call snoemint(iyd, mlat, f107, ap(1), nalt, alt, t, d(10,:))
 end subroutine msis00_eval
 
-subroutine iri90_eval(jf,jmag,glat,glong,mmdd,sec,f107a,z,jmax, &
-   data_dir,outf,oarr)
+subroutine iri90_eval(jf,jmag,glat,glong,mmdd,sec,f107a,z, &
+   data_dir,outf,oarr,jmax)
    ! jf,jmag,alat,alon,iyyy,mmdd,dhour,zkm,nzkm,outf,oarr
    implicit none
 
@@ -67,10 +67,10 @@ subroutine iri90_eval(jf,jmag,glat,glong,mmdd,sec,f107a,z,jmax, &
    real,intent(in) :: glat, glong, f107a, z(jmax), sec
    character(len=*), intent(in) :: data_dir
    real,intent(inout) :: oarr(30)
-   real,intent(out) :: outf(11,jmax)
+   real,intent(inout) :: outf(11,jmax)
    character(len=1024) :: iri90_dir
    
-   integer :: iday, j
+   integer :: iday, i, j
    real :: rz12, stl
    
    iri90_dir = trim(data_dir)//'/iri90/'
@@ -83,9 +83,9 @@ subroutine iri90_eval(jf,jmag,glat,glong,mmdd,sec,f107a,z,jmax, &
    call iri90(jf, jmag, glat, glong, rz12, iday, stl, z, jmax, iri90_dir, outf, oarr)
 
    do j=1,jmax
-      outf(1,j) = outf(1,j) / 1.E6 ! electron density, m-3 to cm-3
-      if (outf(1,j) < 100.) outf(1,j) = 100. ! minimum electron density
-      outf(5:11,j) = outf(5:11,j) / 100. ! ion species densities
+      if (outf(11,j).lt.0.0) outf(11,j) = 0.0
+      do i=5,11
+         outf(i,j) = outf(i,j) * outf(1,j) / 100.0 ! percentage to cm-3
+      enddo
    enddo
-
 end subroutine iri90_eval

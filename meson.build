@@ -34,6 +34,8 @@ inc_np = include_directories(incdir_numpy, incdir_f2py)
 
 py.install_sources(
     'src/glowpython2/__init__.py',
+    'src/glowpython2/atmo_iri90.py',
+    'src/glowpython2/atmo_msis00.py',
     'src/glowpython2/base.py',
     'src/glowpython2/utils.py',
     'src/glowpython2/version.py',

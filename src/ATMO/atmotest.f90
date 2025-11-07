@@ -14,10 +14,9 @@ program atmotest
     print *, 'Temperatures (K):', (t(j), j=1,3)
     print *, 'Exospheric Temperature (K):', exot
     jf(:) = .true.
-    jf(6) = .false.
-    call iri90_eval(jf,0,45.0,45.0,124,43200.0,150.0,[100.0, 200.0, 300.0],3,'data',outf,oarr)
+    call iri90_eval(jf,0,45.0,45.0,124,43200.0,150.0,[100.0, 200.0, 300.0],'data',outf,oarr,3)
     print *, 'Electron Densities (cm^-3):', (outf(1,j), j=1,3)
     print *, 'Ion Temperatures (K):', (outf(3,j), j=1,3)
     print *, 'Electron Temperatures (K):', (outf(4,j), j=1,3)
-    print *, 'nmF2 (cm^-3):', oarr(1), ' hmF2 (km):', oarr(2)
+    print *, 'nmF2 (cm^-3):', oarr(1) / 1.e6, ' hmF2 (km):', oarr(2)
 end program atmotest
