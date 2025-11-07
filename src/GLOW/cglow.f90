@@ -79,9 +79,9 @@ module cglow
   real,dimension(nw) :: vcb
 
   real,allocatable,dimension(:) ::             &                      ! (jmax)
-    zz, zo, zn2, zo2, zno, zns, znd, zrho, ze, &
-    ztn, zti, zte, eheat, tez, ecalc, tei, tpi,&
-    tir, bmag, dip
+    zz, zo, zn2, zo2, zno, zns, znd, zrho, ze, &                      ! (jmax)
+    ztn, zti, zte, eheat, tez, ecalc, tei, tpi,&                      ! (jmax)
+    tir, bmag, dip                                                    ! (jmax)
   real(wp),allocatable,dimension(:) :: phitop, ener, edel             ! (nbins)
   real,allocatable,dimension(:)     :: wave1, wave2, sflux            ! (lmax)
   real,allocatable,dimension(:)     :: sf_rflux, sf_scale1, sf_scale2 ! (lmax)
@@ -359,13 +359,11 @@ module cglow
     if (allocated(eheat)) deallocate(eheat)
     if (allocated(tez)) deallocate(tez)
     if (allocated(tei)) deallocate(tei)
+    if (allocated(ecalc)) deallocate(ecalc)
     if (allocated(tpi)) deallocate(tpi)
     if (allocated(tir)) deallocate(tir)
-    if (allocated(ecalc)) deallocate(ecalc)
-    if (allocated(zxden)) deallocate(zxden)
-    if (allocated(zeta)) deallocate(zeta)
-    if (allocated(zceta)) deallocate(zceta)
-    if (allocated(zlbh)) deallocate(zlbh)
+    if (allocated(dip)) deallocate(dip)
+    if (allocated(bmag)) deallocate(bmag)
     if (allocated(phitop)) deallocate(phitop)
     if (allocated(ener)) deallocate(ener)
     if (allocated(edel)) deallocate(edel)
@@ -377,8 +375,15 @@ module cglow
     if (allocated(zcol)) deallocate(zcol)
     if (allocated(pia)) deallocate(pia)
     if (allocated(sion)) deallocate(sion)
-    if (allocated(sigs)) deallocate(sigs)
+    if (allocated(photoi)) deallocate(photoi)
+    if (allocated(photod)) deallocate(photod)
+    if (allocated(phono)) deallocate(phono)
     if (allocated(aglw)) deallocate(aglw)
+    if (allocated(zxden)) deallocate(zxden)
+    if (allocated(zeta)) deallocate(zeta)
+    if (allocated(zceta)) deallocate(zceta)
+    if (allocated(zlbh)) deallocate(zlbh)
+    if (allocated(sigs)) deallocate(sigs)
     if (allocated(pe)) deallocate(pe)
     if (allocated(pin)) deallocate(pin)
     if (allocated(sigex)) deallocate(sigex)
@@ -386,11 +391,6 @@ module cglow
     if (allocated(siga)) deallocate(siga)
     if (allocated(sec)) deallocate(sec)
     if (allocated(iimaxx)) deallocate(iimaxx)
-    if (allocated(phono)) deallocate(phono)
-    if (allocated(photoi)) deallocate(photoi)
-    if (allocated(photod)) deallocate(photod)
-    if (allocated(bmag)) deallocate(bmag)
-    if (allocated(dip)) deallocate(dip)
   end subroutine cglow_dynamic_dealloc
 
   subroutine cglow_dynamic_zero
@@ -448,7 +448,7 @@ module cglow
 
   subroutine sflux_init()
     ! Initialize the solar flux model
-    call ssflux_init(iscale)       ! initialize ssflux
+    call ssflux_init(iscale)   ! initialize ssflux
     call ephoto_init()         ! initialize ephoto
   end subroutine sflux_init
   

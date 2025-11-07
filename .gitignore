@@ -7,6 +7,7 @@ bin/
 build/
 builldir/
 dist/
+OLDGLOW/
 **/.DS_Store
 # Compiled Dynamic libraries
 **/*.so

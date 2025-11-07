@@ -21,20 +21,20 @@
 !   hallcond(jmax) - Hall conductivity at each grid point
 
 
-subroutine conduct_iface(jmax, pedcond, hallcond)
-    use cglow, only: zo, zo2, zn2, zxden, ztn, zti, zte, bmag
-    implicit none
-    integer, intent(in) :: jmax
-    real, intent(inout) :: pedcond(jmax), hallcond(jmax)
-    integer :: j
-    do j = 1, jmax
-        call conduct(bmag(j), &
-                     zo(j), zo2(j), zn2(j), &
-                     zxden(3, j), zxden(6, j), &
-                     zxden(7, j), &
-                     ztn(j), zti(j), zte(j), &
-                     pedcond(j), hallcond(j))
-    end do
+subroutine pyconduct(jmax, pedcond, hallcond)
+   use cglow, only: zo, zo2, zn2, zxden, ztn, zti, zte, bmag
+   implicit none
+   integer, intent(in) :: jmax
+   real, intent(inout) :: pedcond(jmax), hallcond(jmax)
+   integer :: j
+   do j = 1, jmax
+      call conduct(bmag(j), &
+         zo(j), zo2(j), zn2(j), &
+         zxden(3, j), zxden(6, j), &
+         zxden(7, j), &
+         ztn(j), zti(j), zte(j), &
+         pedcond(j), hallcond(j))
+   end do
 
 
-end subroutine conduct_iface
+end subroutine pyconduct
