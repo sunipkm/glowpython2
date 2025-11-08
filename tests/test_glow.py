@@ -4,6 +4,7 @@ import json
 
 from matplotlib.gridspec import GridSpec
 import pytz
+from glowpython import no_precipitation as glownoprecip
 from glowpython2 import no_precipitation
 from glowpython2.plots import Plot
 from glowpython2.utils import alt_grid, interpolate_nan
@@ -32,11 +33,16 @@ glat = 42.6
 glon = -71.2
 Nbins = 250
 tec = None
-versions = ['MSIS21_IRI20', 'MSIS00_IRI90']
-lstyles = ['-', '--']
+versions = ['GLOW', 'MSIS00_IRI90', 'MSIS21_IRI20']
+lstyles = ['-', '--', '-.']
+biglabels = ['GLOW', 'MSIS-2000 + IRI-1990', 'MSIS-2.1 + IRI-2020']
 ionos = {}
 for version in versions:
-    iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version)  # type: ignore
+    if version == 'GLOW':
+        iono = glownoprecip(time, glat, glon, Nbins)
+    else:
+        magmodel = 'IGRF14' if version == 'MSIS21_IRI20' else 'POGO68'
+        iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version, magmodel=magmodel)  # type: ignore
     ionos[version] = iono
 # %% Density plot
 grid = GridSpec(2, 2, height_ratios=[0.05, 1], width_ratios=[1, 1], hspace=0.1, wspace=0.15)
@@ -90,9 +96,9 @@ for k, v in den_lines[1].items():
     lines.append(v)
     labels.append(descs.get(k))
 den_axs[1].legend(lines, labels, loc="best", fontsize='small')
-legend_axs.plot([], [], label='MSIS-2.1 + IRI-2020', color='k', linestyle='-')
-legend_axs.plot([], [], label='MSIS-2000 + IRI-1990', color='k', linestyle='--')
-legend_axs.legend(loc='center', ncol=2, fontsize='small', mode='expand', frameon=False)
+for lab, ls in zip(biglabels, lstyles):
+    legend_axs.plot([], [], label=lab, color='k', linestyle=ls)
+legend_axs.legend(loc='center', ncol=3, fontsize='small', mode='expand', frameon=False)
 den_figure.text(0.5, 0.04, "Number Density [cm$^{-3}$]", ha='center')
 den_figure.text(0.5, 0.9, time.astimezone(UTC).astimezone(pytz.timezone('US/Eastern')).isoformat(sep=' '), ha='center')
 den_figure.savefig('no_precip_density_comparison.png', dpi=300)
@@ -130,9 +136,9 @@ for k, v in temp_lines.items():
     lines.append(v)
     labels.append(f'${k}$')
 temp_ax.legend(lines, labels, loc="best")
-temp_legend_ax.plot([], [], label='MSIS-2.1 + IRI-2020', color='k', linestyle='-')
-temp_legend_ax.plot([], [], label='MSIS-2000 + IRI-1990', color='k', linestyle='--')
-temp_legend_ax.legend(loc='center', ncol=2, fontsize='small', mode='expand', frameon=False)
+for lab, ls in zip(biglabels, lstyles):
+    temp_legend_ax.plot([], [], label=lab, color='k', linestyle=ls)
+temp_legend_ax.legend(loc='center', ncol=3, fontsize='small', mode='expand', frameon=False)
 temp_figure.text(0.5, 0.9, time.astimezone(UTC).astimezone(pytz.timezone('US/Eastern')).isoformat(sep=' '), ha='center')
 temp_figure.savefig('no_precip_temperature_comparison.png', dpi=300)
 plt.show()
@@ -185,9 +191,9 @@ for ax in ver_axs[1:]:
 ver_axs[0].set_ylabel("Altitude [km]")
 ver_figure.text(0.5, 0.04, "Volume Emission Rate [cm$^{-3}$ s$^{-1}$]", ha='center')
 ver_figure.text(0.5, 0.9, time.astimezone(UTC).astimezone(pytz.timezone('US/Eastern')).isoformat(sep=' '), ha='center')
-ver_legend_ax.plot([], [], label='MSIS-2.1 + IRI-2020', color='k', linestyle='-')
-ver_legend_ax.plot([], [], label='MSIS-2000 + IRI-1990', color='k', linestyle='--')
-ver_legend_ax.legend(loc='center', ncol=2, fontsize='small', mode='expand', frameon=False)
+for lab, ls in zip(biglabels, lstyles):
+    ver_legend_ax.plot([], [], label=lab, color='k', linestyle=ls)
+ver_legend_ax.legend(loc='center', ncol=3, fontsize='small', mode='expand', frameon=False)
 ver_figure.savefig('no_precip_ver_comparison.png', dpi=300)
 plt.show()
 

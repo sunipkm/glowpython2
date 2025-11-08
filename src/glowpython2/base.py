@@ -332,10 +332,10 @@ class GlowModel(Singleton):
             self._lon = glon
             self._magmodel = magmodel
             if magmodel == 'IGRF14':
-                dip = IGRF.dipangle(dyear, glat, glon, self._z)
+                dip = IGRF.dipangle(dyear, glat, glon, self._z) * np.pi / 180.0  # convert to radians
                 bfield = IGRF.fieldstrength(dyear, glat, glon, self._z)
             elif magmodel == 'POGO68':
-                dip = POGO68.dipangle(dyear, glat, glon, 300.0)
+                dip = POGO68.dipangle(dyear, glat, glon, 300.0)*np.pi / 180.0  # convert to radians
                 bfield = POGO68.fieldstrength(dyear, glat, glon, self._z)
                 dip = np.full(len(self._z), dip, dtype=np.float32)
             else:
@@ -613,6 +613,9 @@ class GlowModel(Singleton):
         cg.zti[:] = ds_iri['Ti'].values.astype(float32, order='F')
         cg.zte[:] = ds_iri['Te'].values.astype(float32, order='F')
         cg.ze[:] = ds_iri['Ne'].values.astype(float32, order='F')
+        cg.zxden[2,:] = ds_iri['O+'].values.astype(float32, order='F')
+        cg.zxden[5,:] = ds_iri['O2+'].values.astype(float32, order='F')
+        cg.zxden[6,:] = ds_iri['NO+'].values.astype(float32, order='F')
 
         # Apply the density perturbations
         cg.zo *= dpart[0]
