@@ -333,10 +333,11 @@ class GlowModel(Singleton):
             self._magmodel = magmodel
             if magmodel == 'IGRF14':
                 dip = IGRF.dipangle(dyear, glat, glon, self._z)
-                bfield = IGRF.fieldstrength(dyear, glat, glon, self._z)[0]
+                bfield = IGRF.fieldstrength(dyear, glat, glon, self._z)
             elif magmodel == 'POGO68':
-                dip = POGO68.dipangle(dyear, glat, glon, self._z)
-                bfield = POGO68.fieldstrength(dyear, glat, glon, self._z)[0]
+                dip = POGO68.dipangle(dyear, glat, glon, 300.0)
+                bfield = POGO68.fieldstrength(dyear, glat, glon, self._z)
+                dip = np.full(len(self._z), dip, dtype=np.float32)
             else:
                 raise ValueError(f'Invalid magnetic field model: {magmodel}')
             cg.dip[:] = dip.astype(np.float32)  # type: ignore
