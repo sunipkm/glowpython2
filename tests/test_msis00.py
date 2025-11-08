@@ -22,16 +22,17 @@ matplotlib.rc(
 # rc('font',**{'family':'serif','serif':['Palatino']})
 matplotlib.rc('text', usetex=usetex)
 # %%
+MON = 1
 msis00 = NrlMsis00()
 msis21 = NrlMsis21()
 ds00 = msis00.evaluate(
-    time=datetime(2022, 3, 21, 12, 0, 0, tzinfo=UTC),
+    time=datetime(2022, MON, 13, 10, 0, 0, tzinfo=UTC),
     lat=0.0,
     lon=0.0,
     alt=alt_grid(),
 )
 ds21 = msis21.evaluate(
-    time=datetime(2022, 3, 21, 12, 0, 0, tzinfo=UTC),
+    time=datetime(2022, MON, 13, 10, 0, 0, tzinfo=UTC),
     lat=0.0,
     lon=0.0,
     alt=alt_grid(),

@@ -70,7 +70,6 @@ contains
             byear = year
         end if
         do i=1,nalt
-            print *, 'Calculating Bmag for alt=', alt(i)
             call igrf_sub(lat,lon,year,alt(i),x,icode,dip,bmag(i))
             bmag(i) = bmag(i)*1.0e-4
         enddo

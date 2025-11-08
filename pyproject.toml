@@ -38,5 +38,5 @@ dependencies = ['meson', 'ninja', 'numpy >= 1.14.5', 'xarray >= 0.15', 'geomagda
 homepage = "https://github.com/sunipkm/glowpython"
 
 [project.scripts]
-GlowMaxwellian = "glowpython2.examples:Maxwellian"
-GlowNoPrecip = "glowpython2.examples:NoPrecipitation"
+Glow2Maxwellian = "glowpython2.examples:Maxwellian"
+Glow2NoPrecip = "glowpython2.examples:NoPrecipitation"

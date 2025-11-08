@@ -7,7 +7,7 @@ from numpy import allclose, array, asarray, float32, full, isnan, ndarray, ones,
 import numpy as np
 from xarray import Dataset, Variable
 import xarray
-from .utils import Singleton, alt_grid, glowdate, geocent_to_geodet, interpolate_nan
+from .utils import Singleton, alt_grid, decimal_year, glowdate, geocent_to_geodet, interpolate_nan
 from .glowfort import cglow, cglow as cg, maxt, glow, pyconduct  # type: ignore
 from typing import Any, Dict, Iterable, Optional, Sequence, SupportsFloat as Numeric, Tuple, Literal
 import atexit
@@ -16,6 +16,11 @@ from msis21py import NrlMsis21, Settings as Msis21Settings
 from iri20py import Iri2020, Settings as Iri20Settings
 from .atmo_msis00 import Msis00Settings, NrlMsis00
 from .atmo_iri90 import Iri90, Settings as Iri90Settings
+from .igrf import Igrf
+from .pogo68 import Pogo68
+
+IGRF = Igrf()
+POGO68 = Pogo68()
 
 
 FluxSource = Literal[
@@ -26,6 +31,11 @@ FluxSource = Literal[
 AtmosphereKind = Literal[
     'MSIS00_IRI90',
     'MSIS21_IRI20',
+]
+
+MagField = Literal[
+    'POGO68',
+    'IGRF14'
 ]
 
 # Suppress FutureWarnings
@@ -138,11 +148,15 @@ class GlowModel(Singleton):
         self._atm = False
         self._evaluated = False
         self._z = zeros(0, dtype=float32, order='F')
+        self._lat = np.nan
+        self._lon = np.nan
+        self._dyear = np.nan
+        self._magmodel = 'POGO68'
 
     def initialize(
         self,
         alt_km: int | Sequence = 250, nbins: int = 100,
-            sflux: FluxSource | Tuple[Sequence, Sequence, Sequence] = 'EUVAC'
+        sflux: FluxSource | Tuple[Sequence, Sequence, Sequence] = 'EUVAC'
     ) -> None:
         """## Initialize Inputs
         Initializes the altitude grid, energy bins and solar flux model.
@@ -273,6 +287,7 @@ class GlowModel(Singleton):
         glon: Numeric,
         *,
         geomag_params: Optional[Dict[str, Numeric | np.ndarray]] = None,
+        magmodel: MagField = 'POGO68',
         tzaware: bool = False,
     ) -> None:
         """## Setup the GLOW model for evaluation.
@@ -284,7 +299,7 @@ class GlowModel(Singleton):
             - `time (datetime)`: Model evaluation time.
             - `glat (Numeric)`: Location latitude (degrees).
             - `glon (Numeric)`: Location longitude (degrees).
-            - `geomag_params (dict | Iterable, optional)`: Custom geomagnetic parameters.
+            - `geomag_params (dict, optional)`: Custom geomagnetic parameters.
                 - `f107a` (running average F10.7 over 81 days), 
                 - `f107` (current day F10.7), 
                 - `f107p` (previous day F10.7), and
@@ -309,6 +324,23 @@ class GlowModel(Singleton):
 
         self._geomag_params = geomag_params
         self._tzaware = tzaware
+
+        dyear = decimal_year(time)
+        if self._dyear != dyear or self._lat != glat or self._lon != glon or self._magmodel != magmodel:
+            self._dyear = dyear
+            self._lat = glat
+            self._lon = glon
+            self._magmodel = magmodel
+            if magmodel == 'IGRF14':
+                dip = IGRF.dipangle(dyear, glat, glon, self._z)
+                bfield = IGRF.fieldstrength(dyear, glat, glon, self._z)[0]
+            elif magmodel == 'POGO68':
+                dip = POGO68.dipangle(dyear, glat, glon, self._z)
+                bfield = POGO68.fieldstrength(dyear, glat, glon, self._z)[0]
+            else:
+                raise ValueError(f'Invalid magnetic field model: {magmodel}')
+            cg.dip[:] = dip.astype(np.float32)  # type: ignore
+            cg.bmag[:] = bfield.astype(np.float32)  # type: ignore
 
         if geomag_params is None:
             ip = gi.get_indices([time - timedelta(days=1), time],  # type: ignore
@@ -1059,6 +1091,7 @@ def generic(time: datetime,
             *,
             geomag_params: Optional[dict] = None,
             tzaware: bool = False,
+            magmodel: MagField = 'POGO68',
             version: AtmosphereKind = 'MSIS00_IRI90',
             settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
             tec: Optional[Numeric | Dataset] = None,
@@ -1133,7 +1166,7 @@ def generic(time: datetime,
     """
     mod = GlowModel()  # Get an instance of the GLOW model
     mod.initialize(jmax, nbins, sflux)
-    mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware)
+    mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware, magmodel=magmodel)
     mod.precipitation(Q, Echar, itail=itail, fmono=fmono, emono=emono)
     ds = mod.evaluate(
         xuvfac, jlocal, kchem, density_perturbation=density_perturbation,
@@ -1155,6 +1188,7 @@ def maxwellian(
     geomag_params: Optional[dict] = None,
     tzaware: bool = False,
     tec: Optional[Numeric | Dataset] = None,
+    magmodel: MagField = 'POGO68',
     version: AtmosphereKind = 'MSIS00_IRI90',
     settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
     metadata: Optional[dict] = None
@@ -1206,7 +1240,7 @@ def maxwellian(
     else:
         alt_km = None
     mod.initialize(alt_km, Nbins)  # type: ignore
-    mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware)
+    mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware, magmodel=magmodel)
     mod.precipitation(Q, Echar)
     ds = mod(density_perturbation=density_perturbation, tec=tec, version=version, settings=settings)
     _ = metadata
@@ -1223,6 +1257,7 @@ def no_precipitation(
     geomag_params: Optional[dict] = None,
     tzaware: bool = False,
     tec: Optional[Numeric | Dataset] = None,
+    magmodel: MagField = 'POGO68',
     version: AtmosphereKind = 'MSIS00_IRI90',
     settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
     metadata: Optional[dict] = None
@@ -1272,7 +1307,7 @@ def no_precipitation(
     else:
         alt_km = None
     mod.initialize(alt_km, Nbins)  # type: ignore
-    mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware)
+    mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware, magmodel=magmodel)
     ds = mod(density_perturbation=density_perturbation, tec=tec, version=version, settings=settings)
     _ = metadata
     return ds
@@ -1291,6 +1326,7 @@ def monoenergetic(
     geomag_params: Optional[dict] = None,
     tzaware: bool = False,
     tec: Optional[Numeric | Dataset] = None,
+    magmodel: MagField = 'POGO68',
     version: AtmosphereKind = 'MSIS00_IRI90',
     settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
     metadata: Optional[dict] = None
@@ -1343,7 +1379,7 @@ def monoenergetic(
     else:
         alt_km = None
     mod.initialize(alt_km, Nbins)  # type: ignore
-    mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware)
+    mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware, magmodel=magmodel)
     mod.precipitation(0.001, emono/2., fmono=fmono, emono=emono, itail=itail)
     ds = mod(density_perturbation=density_perturbation, tec=tec, version=version, settings=settings)
     _ = metadata

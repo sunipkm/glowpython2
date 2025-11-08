@@ -38,23 +38,23 @@ def Maxwellian():
     # %% Number of energy bins
     Nbins = args.Nbins
     tec = args.tec
-    versions = ['MSIS21_IRI20', 'MSIS00_IRI90']
+    magmodel = 'IGRF14' if args.newmodel else 'POGO68'
+    version = 'MSIS21_IRI20' if args.newmodel else 'MSIS00_IRI90'
     lstyles = ['-', '--']
     plot = Plot()
-    for version, linestyle in zip(versions, lstyles):
-        iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version)  # type: ignore
-        ne = interpolate_nan(iono["NeIn"].values, inplace=False)
-        hmf = iono.attrs.get('hmf2')
-        if hmf is not None:
-            hmf = json.loads(hmf)['value']
-        print(f'[{version}] TEC: {np.trapezoid(ne, iono.alt_km.values*1e5)*1e-12:.2f} TECU, hmf2: {hmf:.1f} km')
+    iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version, magmodel=magmodel)  # type: ignore
+    ne = interpolate_nan(iono["NeIn"].values, inplace=False)
+    hmf = iono.attrs.get('hmf2')
+    if hmf is not None:
+        hmf = json.loads(hmf)['value']
+    print(f'[{version}] TEC: {np.trapezoid(ne, iono.alt_km.values*1e5)*1e-12:.2f} TECU, hmf2: {hmf:.1f} km')
 
-        plot.precip(iono["precip"], linestyle=linestyle)
-        plot.density(iono, linestyle=linestyle)
+    plot.precip(iono["precip"])
+    plot.density(iono)
 
-        plot.temperature(iono, linestyle=linestyle)
+    plot.temperature(iono)
 
-        plot.ver(iono, linestyle=linestyle)
+    plot.ver(iono)
 
     show()
 
@@ -70,6 +70,7 @@ def NoPrecipitation():
     parser.add_argument('--glon', type=float, help='Geographic longitude in degrees.', default=-71.2, required=False)
     parser.add_argument('--Nbins', type=int, help='Number of energy bins.', default=250, required=False)
     parser.add_argument('--tec', type=float, help='Total electron content in TECU.', default=None, required=False)
+    parser.add_argument('--newmodel', action='store_true', help='Use MSIS 2.1 and IRI-2020.', required=False)
 
     args = parser.parse_args()
 
@@ -78,21 +79,20 @@ def NoPrecipitation():
     glon = args.glon
     Nbins = args.Nbins
     tec = args.tec
-    versions = ['MSIS21_IRI20', 'MSIS00_IRI90']
-    lstyles = ['-', '--']
+    magmodel = 'IGRF14' if args.newmodel else 'POGO68'
+    version = 'MSIS21_IRI20' if args.newmodel else 'MSIS00_IRI90'
     plot = Plot()
-    for version, linestyle in zip(versions, lstyles):
-        iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version)  # type: ignore
-        ne = interpolate_nan(iono["NeIn"].values, inplace=False)
-        hmf = iono.attrs.get('hmf2')
-        if hmf is not None:
-            hmf = json.loads(hmf)['value']
-        print(f'[{version}] TEC: {np.trapezoid(ne, iono.alt_km.values*1e5)*1e-12:.2f} TECU, hmf2: {hmf:.1f} km')
+    iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version, magmodel=magmodel)  # type: ignore
+    ne = interpolate_nan(iono["NeIn"].values, inplace=False)
+    hmf = iono.attrs.get('hmf2')
+    if hmf is not None:
+        hmf = json.loads(hmf)['value']
+    print(f'[{version}] TEC: {np.trapezoid(ne, iono.alt_km.values*1e5)*1e-12:.2f} TECU, hmf2: {hmf:.1f} km')
 
-        plot.density(iono, linestyle=linestyle)
+    plot.density(iono)
 
-        plot.temperature(iono, linestyle=linestyle)
+    plot.temperature(iono)
 
-        plot.ver(iono, linestyle=linestyle)
+    plot.ver(iono)
 
     show()

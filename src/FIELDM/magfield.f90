@@ -1,5 +1,5 @@
-subroutine dipangle_pogo86(year,lat,lon,alt,dip)
-   ! Calculate dip angle using POGO86 model
+subroutine dipangle_pogo68(year,lat,lon,alt,dip)
+   ! Calculate dip angle using POGO68 model
    implicit none
    real, intent(in)  :: year ! Decimal year: Year + (Day of Year)/365 or 366
    real, intent(in)  :: lat  ! latitude
@@ -10,8 +10,8 @@ subroutine dipangle_pogo86(year,lat,lon,alt,dip)
    call FIELDM(lat,lon,alt,x,y,z,f,dip,dec,smodip)
 end subroutine
 
-subroutine diparray_pogo86(year,lat,lon,alt,dip,nalt)
-   ! Calculate dip angle array using POGO86 model
+subroutine diparray_pogo68(year,lat,lon,alt,dip,nalt)
+   ! Calculate dip angle array using POGO68 model
    implicit none
    integer, intent(in) :: nalt ! number of altitude points
    real, intent(in)    :: year ! Decimal year: Year + (Day of Year)/365 or 366
@@ -26,8 +26,8 @@ subroutine diparray_pogo86(year,lat,lon,alt,dip,nalt)
    enddo
 end subroutine
 
-subroutine bmagarray_pogo86(year,lat,lon,alt,bmag,nalt)
-   ! Calculate magnetic field strength array using POGO86 model
+subroutine bmagarray_pogo68(year,lat,lon,alt,bmag,nalt)
+   ! Calculate magnetic field strength array using POGO68 model
    implicit none
    integer, intent(in) :: nalt       ! number of altitude points
    real, intent(in)    :: year       ! Decimal year: Year + (Day of Year)/365 or 366
@@ -43,8 +43,8 @@ subroutine bmagarray_pogo86(year,lat,lon,alt,bmag,nalt)
    enddo
 end subroutine
 
-subroutine mlatlon_pogo86(year,lat,lon,alt,mlat,mlon)
-   ! Calculate magnetic latitude and longitude using POGO86 model
+subroutine mlatlon_pogo68(year,lat,lon,alt,mlat,mlon)
+   ! Calculate magnetic latitude and longitude using POGO68 model
    implicit none
    real, intent(in)  :: year ! Decimal year: Year + (Day of Year)/365 or 366
    real, intent(in)  :: lat  ! geographic latitude

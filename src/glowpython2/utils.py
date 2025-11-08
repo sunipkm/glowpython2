@@ -119,6 +119,19 @@ def alt_grid(num: int = 250, minalt: Numeric = 60, dmin: Numeric = 0.5, dmax: Nu
     out += float(minalt) - float(dmin)
     return out
 
+def decimal_year(time: datetime) -> float:
+    """## Convert datetime to decimal year.
+    ### Args:
+        - `time (datetime)`: Datetime object.
+    """
+    iyear = time.year # + time.timetuple().tm_yday
+    if iyear % 4 == 0 and iyear % 100 != 0:
+        idays = 366
+    else:
+        idays = 365
+    iyear = iyear + (time.timetuple().tm_yday - 1) / idays
+    return iyear
+
 class Singleton(object):
     """
     ## A non-thread-safe helper class to ease implementing singletons.

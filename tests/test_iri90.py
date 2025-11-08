@@ -23,18 +23,19 @@ matplotlib.rc(
 # rc('font',**{'family':'serif','serif':['Palatino']})
 matplotlib.rc('text', usetex=usetex)
 # %%
+MON = 12
 iri90 = Iri90()
 iri20 = Iri2020()
 _, ds90 = iri90.evaluate(
-    time=datetime(2022, 3, 21, 12, 0, 0, tzinfo=UTC),
-    lat=0.0,
-    lon=0.0,
+    time=datetime(2015, MON, 13, 10, 0, 0, tzinfo=UTC),
+    lat=42.6,
+    lon=-71.2,
     alt=alt_grid(),
 )
 _, ds20 = iri20.evaluate(
-    time=datetime(2022, 3, 21, 12, 0, 0, tzinfo=UTC),
-    lat=0.0,
-    lon=0.0,
+    time=datetime(2015, MON, 13, 10, 0, 0, tzinfo=UTC),
+    lat=42.6,
+    lon=-71.2,
     alt=alt_grid(),
 )
 # %%
@@ -46,11 +47,11 @@ descs = ['O^+', 'O_2^+', 'N^+', 'NO^+']
 colors = ['r', 'g', 'b', 'm']
 labels = []
 lines = []
-for spec, color, desc in zip(species, colors, descs):
-    l21, = ds20[spec].plot(y='alt_km', ax=ax, color=color)
-    l00, = ds90[spec].plot(y='alt_km', ax=ax, linestyle='--', color=color)
-    lines.extend([l21, l00])
-    labels.extend([f'IRI-20 ${desc}$', f'IRI-90 ${desc}$'])
+# for spec, color, desc in zip(species, colors, descs):
+#     l21, = ds20[spec].plot(y='alt_km', ax=ax, color=color)
+#     l00, = ds90[spec].plot(y='alt_km', ax=ax, linestyle='--', color=color)
+#     lines.extend([l21, l00])
+#     labels.extend([f'IRI-20 ${desc}$', f'IRI-90 ${desc}$'])
 ax.set_title('IRI-90 vs IRI-20')
 l21, = ds20['Te'].plot(y='alt_km', ax=tax, color='k')
 l00, = ds90['Te'].plot(y='alt_km', ax=tax, linestyle='--', color='k')
