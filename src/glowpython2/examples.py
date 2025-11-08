@@ -2,12 +2,13 @@ import numpy as np
 
 from glowpython2.utils import interpolate_nan
 from .base import maxwellian, no_precipitation
-from . import plots as plot
+from .plots import Plot
 from datetime import datetime
 from matplotlib.pyplot import show
 from dateutil.parser import parse
 import sys
 import argparse
+import json
 
 
 def Maxwellian():
@@ -23,9 +24,7 @@ def Maxwellian():
     parser.add_argument('--Echar', type=float, help='Characteristic energy in eV.', default=100e3, required=False)
     parser.add_argument('--Nbins', type=int, help='Number of energy bins.', default=250, required=False)
     parser.add_argument('--tec', type=float, help='Total electron content in TECU.', default=None, required=False)
-    parser.add_argument('--hmf2', type=float, help='Height of maximum F2 density in km.', default=None, required=False)
-    parser.add_argument('--nmf2', type=float, help='Maximum electron density at F2 in cm^-3.', default=None, required=False)
-    parser.add_argument('--f2_peak', type=str, help='F2 peak source model (URSI/CCIR).', default='URSI', required=False)
+    parser.add_argument('--newmodel', action='store_true', help='Use MSIS 2.1 and IRI-2020.', required=False)
 
     args = parser.parse_args()
 
@@ -39,17 +38,23 @@ def Maxwellian():
     # %% Number of energy bins
     Nbins = args.Nbins
     tec = args.tec
+    versions = ['MSIS21_IRI20', 'MSIS00_IRI90']
+    lstyles = ['-', '--']
+    plot = Plot()
+    for version, linestyle in zip(versions, lstyles):
+        iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version)  # type: ignore
+        ne = interpolate_nan(iono["NeIn"].values, inplace=False)
+        hmf = iono.attrs.get('hmf2')
+        if hmf is not None:
+            hmf = json.loads(hmf)['value']
+        print(f'[{version}] TEC: {np.trapezoid(ne, iono.alt_km.values*1e5)*1e-12:.2f} TECU, hmf2: {hmf:.1f} km')
 
-    iono = maxwellian(time, glat, glon, Nbins, Q, Echar, tec=tec, hmf2=args.hmf2, nmf2=args.nmf2, f2_peak=args.f2_peak)
+        plot.precip(iono["precip"], linestyle=linestyle)
+        plot.density(iono, linestyle=linestyle)
 
-    ne = interpolate_nan(iono["NeIn"].values, inplace=False)
+        plot.temperature(iono, linestyle=linestyle)
 
-    print(f'TEC: {np.trapz(ne, iono.alt_km.values*1e5)*1e-12:.2f} TECU, hmf2: {iono.attrs["hmf2"]:.1f} km')
-    # %% plots
-    plot.precip(iono["precip"])
-    plot.ver(iono)
-    plot.density(iono)
-    plot.temperature(iono)
+        plot.ver(iono, linestyle=linestyle)
 
     show()
 
@@ -65,9 +70,6 @@ def NoPrecipitation():
     parser.add_argument('--glon', type=float, help='Geographic longitude in degrees.', default=-71.2, required=False)
     parser.add_argument('--Nbins', type=int, help='Number of energy bins.', default=250, required=False)
     parser.add_argument('--tec', type=float, help='Total electron content in TECU.', default=None, required=False)
-    parser.add_argument('--hmf2', type=float, help='Height of maximum F2 density in km.', default=None, required=False)
-    parser.add_argument('--nmf2', type=float, help='Maximum electron density at F2 in cm^-3.', default=None, required=False)
-    parser.add_argument('--f2_peak', type=str, help='F2 peak source model (URSI/CCIR).', default='URSI', required=False)
 
     args = parser.parse_args()
 
@@ -76,17 +78,21 @@ def NoPrecipitation():
     glon = args.glon
     Nbins = args.Nbins
     tec = args.tec
+    versions = ['MSIS21_IRI20', 'MSIS00_IRI90']
+    lstyles = ['-', '--']
+    plot = Plot()
+    for version, linestyle in zip(versions, lstyles):
+        iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version)  # type: ignore
+        ne = interpolate_nan(iono["NeIn"].values, inplace=False)
+        hmf = iono.attrs.get('hmf2')
+        if hmf is not None:
+            hmf = json.loads(hmf)['value']
+        print(f'[{version}] TEC: {np.trapezoid(ne, iono.alt_km.values*1e5)*1e-12:.2f} TECU, hmf2: {hmf:.1f} km')
 
-    iono = no_precipitation(time, glat, glon, Nbins, tec=tec, hmf2=args.hmf2, nmf2=args.nmf2, f2_peak=args.f2_peak)
+        plot.density(iono, linestyle=linestyle)
 
-    ne = interpolate_nan(iono["NeIn"].values, inplace=False)
+        plot.temperature(iono, linestyle=linestyle)
 
-    print(f'TEC: {np.trapz(ne, iono.alt_km.values*1e5)*1e-12:.2f} TECU, hmf2: {iono.attrs["hmf2"]:.1f} km')
-
-    plot.density(iono)
-
-    plot.temperature(iono)
-
-    plot.ver(iono)
+        plot.ver(iono, linestyle=linestyle)
 
     show()

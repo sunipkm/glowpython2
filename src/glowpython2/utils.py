@@ -1,6 +1,6 @@
 # %%
 from __future__ import annotations
-from typing import Iterable, SupportsAbs, Tuple, SupportsFloat as Numeric, Callable
+from typing import Iterable, Optional, Sequence, SupportsAbs, Tuple, SupportsFloat as Numeric, Callable
 from numpy import arctan, cumsum, float32, interp, isnan, linspace, ndarray, tan, pi as M_PI, asarray, all, tanh
 from datetime import datetime
 
@@ -17,7 +17,7 @@ WGS84_ELL = (6378137, 6356752.3142)  # WGS84 ellipsoid
 WGS74_ELL = (6378135, 6356750.5)  # WGS74 ellipsoid
 
 
-def geocent_to_geodet(lat: Numeric | Iterable[Numeric], ell: Tuple[Numeric, Numeric] = WGS84_ELL) -> Numeric | ndarray:
+def geocent_to_geodet(lat: Numeric | Sequence[Numeric], ell: Tuple[Numeric, Numeric] = WGS84_ELL) -> Numeric | ndarray:
     """## Convert geocentric latitude to geodetic latitude.
 
     ### Args:
@@ -34,12 +34,14 @@ def geocent_to_geodet(lat: Numeric | Iterable[Numeric], ell: Tuple[Numeric, Nume
     ### Returns:
         - `Numeric`: Geodetic latitude in degrees.
     """
-    a, b = ell
-    if isinstance(lat, Iterable):
-        lat = asarray(lat)
-        assert (lat.ndim == 1)
-    assert (a > 0 and b > 0 and a > b and all((-90 <= lat) & (lat <= 90)))
-    return arctan(b*tan(lat*M_PI/180)/a)*180/M_PI
+    a, b = float(ell[0]), float(ell[1])
+    if isinstance(lat, Sequence):
+        lata = asarray(lat, dtype=float)
+        assert (lata.ndim == 1)
+    else:
+        lata = float(lat)
+    assert (a > 0 and b > 0 and a > b and all((-90 <= lata) & (lata <= 90)))
+    return arctan(b*tan(lata*M_PI/180)/a)*180/M_PI
 
 
 def glowdate(t: datetime) -> Tuple[int, Numeric]:
@@ -75,7 +77,7 @@ def nan_helper(y: ndarray) -> Tuple[ndarray, Callable[[ndarray], ndarray]]:
     return isnan(y), lambda z: z.nonzero()[0]
 
 
-def interpolate_nan(y: ndarray, *, inplace: bool = True, left: SupportsAbs = None, right: SupportsAbs = None, period: Numeric = None) -> ndarray:
+def interpolate_nan(y: ndarray, *, inplace: bool = True, left: Optional[SupportsAbs] = None, right: Optional[SupportsAbs] = None, period: Optional[Numeric] = None) -> ndarray:
     """## Interpolate NaNs in a 1-D array.
 
     ### Args:
@@ -91,7 +93,7 @@ def interpolate_nan(y: ndarray, *, inplace: bool = True, left: SupportsAbs = Non
     if not inplace:
         y = y.copy()
     nans, x = nan_helper(y)
-    y[nans] = interp(x(nans), x(~nans), y[~nans], left=left, right=right, period=period)
+    y[nans] = interp(x(nans), x(~nans), y[~nans], left=left, right=right, period=period) # type: ignore
     return y
 
 
@@ -111,10 +113,10 @@ def alt_grid(num: int = 250, minalt: Numeric = 60, dmin: Numeric = 0.5, dmax: Nu
     """
     out = linspace(0, 3.14, num, dtype=float32, endpoint=False)  # tanh gets to 99% of asymptote
     tanh(out, out=out, order='F')
-    out *= dmax
-    out += dmin
+    out *= float(dmax)
+    out += float(dmin)
     cumsum(out, out=out)
-    out += minalt - dmin
+    out += float(minalt) - float(dmin)
     return out
 
 class Singleton(object):
@@ -128,17 +130,22 @@ class Singleton(object):
     3. Classes that inherit from a class inheriting from `Singleton` will NOT
     have its `_init` method called.
     """
-    def __new__(cls):
+    def __new__(cls, *args, **kwargs):
         try:
             return cls.__instance
         except AttributeError:
             pass
         cls.__instance = super(Singleton, cls).__new__(cls)
         try:
-            cls.__instance._init()
+            cls.__instance._init(*args, **kwargs)
         except AttributeError:
             pass
         return cls.__instance
+    
+    def _init(self):
+        """ Initialization method to be overridden by subclasses if needed. """
+        print("Singleton _init called")
+        pass
 
 
 class singleton:
@@ -187,6 +194,6 @@ if __name__ == '__main__':
     lats = np.arange(-80, 80, 20)
     glats = geocent_to_geodet(lats)
     gglats = list(map(geocent_to_geodet, lats))
-    assert np.allclose(glats, gglats)
+    assert np.allclose(glats, gglats) # type: ignore
 
 # %%

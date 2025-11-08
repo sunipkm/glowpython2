@@ -84,6 +84,7 @@ subroutine iri90_eval(jf,jmag,glat,glong,mmdd,sec,f107a,z, &
 
    do j=1,jmax
       if (outf(11,j).lt.0.0) outf(11,j) = 0.0
+      if (outf(4,j).lt.outf(3,j)) outf(4,j) = outf(3,j) ! Te >= Ti
       do i=5,11
          outf(i,j) = outf(i,j) * outf(1,j) / 100.0 ! percentage to cm-3
       enddo

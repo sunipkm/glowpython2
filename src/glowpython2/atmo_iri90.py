@@ -175,7 +175,7 @@ class Iri90(Singleton):
         density_idx = [0, 4, 5, 6, 7, 8, 9, 10]
         temperatures = ['Te', 'Ti']
         temperature_names = ['Electron Temperature', 'Ion Temperature']
-        temperature_idx = [2, 3]
+        temperature_idx = [3, 2]
         for idx, name, desc in zip(density_idx, densities, den_names):
             ds[name] = (('alt_km',), outf[idx]*1e-6,
                         {'units': 'cm^-3', 'long_name': f'{desc} Density'})

@@ -259,7 +259,7 @@ C
       IUCCIR=10
       ! KONSOL=stderr
       KONSOL=25
-      OPEN(KONSOL,FILE="/dev/null",status="old",ERR=8448)
+      OPEN(KONSOL,FILE="/dev/null",status="old")
 
 c
 c selection of density and ion composition options ..................

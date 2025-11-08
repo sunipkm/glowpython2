@@ -3,19 +3,29 @@ from os import path
 import pytz
 import geomagdata as gi
 from datetime import datetime, timedelta
-from numpy import allclose, array, asarray, float32, full, isnan, ndarray, ones, trapz, zeros, copy
+from numpy import allclose, array, asarray, float32, full, isnan, ndarray, ones, trapezoid, zeros, copy
 import numpy as np
 from xarray import Dataset, Variable
 import xarray
 from .utils import Singleton, alt_grid, glowdate, geocent_to_geodet, interpolate_nan
 from .glowfort import cglow, cglow as cg, maxt, glow, pyconduct  # type: ignore
-from typing import Any, Iterable, Optional, Sequence, SupportsFloat as Numeric, Tuple, Literal
+from typing import Any, Dict, Iterable, Optional, Sequence, SupportsFloat as Numeric, Tuple, Literal
 import atexit
 import warnings
+from msis21py import NrlMsis21, Settings as Msis21Settings
+from iri20py import Iri2020, Settings as Iri20Settings
+from .atmo_msis00 import Msis00Settings, NrlMsis00
+from .atmo_iri90 import Iri90, Settings as Iri90Settings
+
 
 FluxSource = Literal[
     'Hinteregger',
     'EUVAC',
+]
+
+AtmosphereKind = Literal[
+    'MSIS00_IRI90',
+    'MSIS21_IRI20',
 ]
 
 # Suppress FutureWarnings
@@ -128,14 +138,16 @@ class GlowModel(Singleton):
         self._atm = False
         self._evaluated = False
         self._z = zeros(0, dtype=float32, order='F')
-        return self
 
-    def initialize(self, alt_km: int | Iterable = 250, nbins: int = 100, 
-                   sflux: FluxSource | Tuple[Sequence, Sequence, Sequence] = 'EUVAC') -> None:
+    def initialize(
+        self,
+        alt_km: int | Sequence = 250, nbins: int = 100,
+            sflux: FluxSource | Tuple[Sequence, Sequence, Sequence] = 'EUVAC'
+    ) -> None:
         """## Initialize Inputs
         Initializes the altitude grid, energy bins and solar flux model.
 
-       ### Args:
+        ### Args:
             - `alt_km (int | Iterable, optional)`: Altitude grid length/altitude grid. Defaults to 250.
                 - `None`: Uses the previous value of `jmax` and altitude grid.
                 - `int`: Length of altitude grid. The altitude grid is then evaluated using the `alt_grid` function.
@@ -144,8 +156,8 @@ class GlowModel(Singleton):
             - `sflux (FluxSource | Tuple[Sequence, Sequence, Sequence], optional)`: Solar flux model. Defaults to EUVAC model. 
                 - `FluxSource`: Solar flux model. Can be 'Hinteregger' or 'EUVAC'.
                 - `Tuple[Sequence, Sequence, Sequence]`: Custom solar flux model. The first sequence is the starting points of the solar flux wavelength bins, 
-                  the second sequence is the ends of the solar flux wavelength bins, and the third sequence is the solar flux values. 
-                  The sequences must be of length 123.
+                the second sequence is the ends of the solar flux wavelength bins, and the third sequence is the solar flux values. 
+                The sequences must be of length 123.
         ### Raises:
             - `RuntimeError`: Reset the model before initializing.
             - `ValueError`: `alt_km` must be specified if not already initialized.
@@ -176,15 +188,15 @@ class GlowModel(Singleton):
                 tmp = alt_grid(jmax, 60., 0.5, 4.)
                 if not allclose(self._z, tmp):
                     self._z = tmp
-        elif isinstance(alt_km, Iterable):
-            alt_km = array(alt_km, dtype=float32, order='F')  # always make a copy
-            alt_km.sort()
-            if any(alt_km < 60) or any(alt_km > 1000):
+        elif isinstance(alt_km, Sequence):
+            alt_kms = array(alt_km, dtype=float32, order='F')  # always make a copy
+            alt_kms.sort()
+            if any(alt_kms < 60) or any(alt_kms > 1000):
                 raise ValueError('Altitude grid must be between 60 and 1000 km')
-            if alt_km.ndim != 1:
+            if alt_kms.ndim != 1:
                 raise ValueError('alt_km must be a 1-D array')
-            jmax = len(alt_km)
-            self._z = alt_km
+            jmax = len(alt_kms)
+            self._z = alt_kms
         # deal with energy grid
         if nbins is None and cglow.nbins == 0:
             raise ValueError('nbins must be specified if not already initialized')
@@ -195,10 +207,10 @@ class GlowModel(Singleton):
         cg.zz = self._z * 1e5  # convert to cm
 
         if isinstance(sflux, Tuple):
-            wave1, wave2, rflux = sflux
-            wave1: ndarray = array(wave1, dtype=float32, order='F')
-            wave2: ndarray = array(wave2, dtype=float32, order='F')
-            rflux: ndarray = array(rflux, dtype=float32, order='F')
+            wave1s, wave2s, rfluxs = sflux
+            wave1: ndarray = array(wave1s, dtype=float32, order='F')
+            wave2: ndarray = array(wave2s, dtype=float32, order='F')
+            rflux: ndarray = array(rfluxs, dtype=float32, order='F')
             if wave1.ndim != 1 or wave2.ndim != 1 or rflux.ndim != 1:
                 raise ValueError('wave1, wave2 and rflux must be 1-D arrays')
             if len(wave1) != len(wave2) or len(wave2) != len(rflux):
@@ -221,11 +233,11 @@ class GlowModel(Singleton):
             cg.wave1 = wave1
             cg.wave2 = wave2
             cg.sflux = rflux
-            cg.sflux_init() # we still need to call it to set the sflux_init last value
+            cg.sflux_init()  # we still need to call it to set the sflux_init last value
         else:
-            if sflux == 'Hinteregger': 
-                iscale = 0 
-            elif sflux == 'EUVAC': 
+            if sflux == 'Hinteregger':
+                iscale = 0
+            elif sflux == 'EUVAC':
                 iscale = 1
             else:
                 raise ValueError(f'Invalid value for sflux: {sflux}')
@@ -255,12 +267,14 @@ class GlowModel(Singleton):
         self._atm = False
         self._evaluated = False
 
-    def setup(self, time: datetime,
-              glat: Numeric,
-              glon: Numeric,
-              *,
-              geomag_params: dict | Iterable = None,
-              tzaware: bool = False,) -> None:
+    def setup(
+        self, time: datetime,
+        glat: Numeric,
+        glon: Numeric,
+        *,
+        geomag_params: Optional[Dict[str, Numeric | np.ndarray]] = None,
+        tzaware: bool = False,
+    ) -> None:
         """## Setup the GLOW model for evaluation.
         Initializes the `cglow` module if not initialized, and sets the input parameters for the GLOW model. Additionally, calculates the auroral electron flux using the `glowfort.maxt` subroutine if needed.
 
@@ -293,8 +307,12 @@ class GlowModel(Singleton):
 
         idate, utsec = glowdate(time)
 
+        self._geomag_params = geomag_params
+        self._tzaware = tzaware
+
         if geomag_params is None:
-            ip = gi.get_indices([time - timedelta(days=1), time], 81, tzaware=tzaware)
+            ip = gi.get_indices([time - timedelta(days=1), time],  # type: ignore
+                                81, tzaware=tzaware)  # type: ignore
             f107a = float(ip["f107s"].iloc[1])
             f107 = float(ip['f107'].iloc[1])
             f107p = float(ip['f107'].iloc[0])
@@ -303,14 +321,16 @@ class GlowModel(Singleton):
             f107a = float(geomag_params['f107a'])
             f107 = float(geomag_params['f107'])
             f107p = float(geomag_params['f107p'])
-            ap = float(geomag_params['Ap'])
-        elif isinstance(geomag_params, Iterable):
-            f107a = float(geomag_params[0])
-            f107 = float(geomag_params[1])
-            f107p = float(geomag_params[2])
-            ap = float(geomag_params[3])
+            ap = geomag_params['Ap']
+            if isinstance(ap, np.ndarray):
+                if ap.dtype != np.float32:
+                    ap = ap.astype(np.float32, order='F')
+                if ap.size != 7:
+                    raise RuntimeError('Ap array must be of length 7 for geomag params %s' % str(geomag_params))
+                ap = ap[0]
         else:
-            raise RuntimeError('Invalid type %s for geomag params %s' % (str(type(geomag_params), str(geomag_params))))
+            raise RuntimeError('Invalid type %s for geomag params %s' % (
+                str(type(geomag_params), str(geomag_params))))
 
         ip = {}
         ip['f107a'] = (f107a)
@@ -319,40 +339,62 @@ class GlowModel(Singleton):
         ip['ap'] = (ap)
 
         _glon = glon  # unmodified for dataset
-        glon = glon % 360
+        glon = glon % 360  # type: ignore
 
         (cg.idate, cg.ut, cg.glat, cg.glong, cg.f107a,
          cg.f107, cg.f107p, cg.ap) = \
             (idate, utsec, glat, glon, f107a, f107, f107p, ap)
 
-        self._stl = (cg.ut/3600. + cg.glong/15.) % 24
+        self._stl = (cg.ut/3600. + cg.glong/15.) % 24  # type: ignore
 
         cg.phitop[:] = 0.
 
-        ds = Dataset(coords={'alt_km': ('alt_km', self._z, {'standard_name': 'altitude',
-                                                            'long_name': 'altitude',
-                                                            'units': 'km'}),
-                             'energy': ('energy', cg.ener, {'long_name': 'energy grid',
-                                                            'units': 'eV'})},
-                     data_vars={'precip': ('energy', cg.phitop,
-                                           {
-                                               'long_name': 'auroral electron flux',
-                                               'units': 'cm^{-2} s^{-1} eV^{-1}'}
-                                           )
-                                }
-                     )
+        ds = Dataset(
+            coords={
+                'alt_km': (
+                    'alt_km',
+                    self._z,
+                    {
+                        'standard_name': 'altitude',
+                        'long_name': 'altitude',
+                        'units': 'km',
+                        'description': 'Altitude grid for GLOW model evaluation',
+                    }
+                ),
+                'energy': (
+                    'energy',
+                    cg.ener,
+                    {
+                        'long_name': 'energy grid',
+                        'units': 'eV',
+                        'description': 'Energy grid for auroral electron flux',
+                    }
+                )
+            },
+            data_vars={
+                'precip': (
+                    'energy',
+                    cg.phitop,
+                    {
+                        'long_name': 'auroral electron flux',
+                        'units': 'cm^{-2} s^{-1} eV^{-1}',
+                        'description': 'Differential number flux of precipitating auroral electrons at the top of the atmosphere',
+                    }
+                )
+            }
+        )
 
         ds['sflux'] = Variable(
             'wave', cg.sflux,
             {
                 'long_name': 'solar flux',
                 'units': 'cm^{-2} s^{-1}',
-                'comment': 'scaled solar flux'
+                'description': 'scaled solar flux'
             }
         )
         wave_attrs = {
             'long_name': 'wavelength',
-            'units': 'Å'
+            'units': 'Å',
         }
         ds.coords['wave'] = ('wave', (cg.wave1 + cg.wave2)*0.5, wave_attrs)
         ds.coords['wave'].attrs['description'] = 'Center of solar flux bins'
@@ -376,7 +418,6 @@ class GlowModel(Singleton):
         ds.attrs['itail'] = cglow.itail
         ds.attrs['fmono'] = cglow.fmono
         ds.attrs['emono'] = cglow.emono
-
         ds.attrs['iscale'] = cglow.iscale
 
         self._ds = ds
@@ -387,10 +428,13 @@ class GlowModel(Singleton):
         self._evaluated = False
         return
 
-    def precipitation(self, Q: Optional[Numeric] = None, Echar: Optional[Numeric] = None, *,
-                      itail: bool = False,
-                      fmono: Numeric = 0,
-                      emono: Numeric = 0):
+    def precipitation(
+        self,
+        Q: Optional[Numeric] = None, Echar: Optional[Numeric] = None, *,
+        itail: bool = False,
+        fmono: Numeric = 0,
+        emono: Numeric = 0
+    ):
         """## Calculate electron precipitation.
 
         ### Args:
@@ -426,7 +470,14 @@ class GlowModel(Singleton):
         ds.attrs['emono'] = cglow.emono
         return
 
-    def atmosphere(self, density_perturbation: Sequence = None, tec: Numeric | Dataset = None, hmf2: Optional[Numeric] = None, nmf2: Optional[Numeric] = None, f2_peak: HmFSource = 'URSI') -> None:
+    def atmosphere(
+        self,
+        density_perturbation: Optional[Sequence] = None,
+        tec: Optional[Numeric | Dataset] = None,
+        *,
+        version: AtmosphereKind = 'MSIS00_IRI90',
+        settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    ) -> None:
         """## Evaluate the atmosphere
         Uses the MSISE-00 and IRI-90 models to calculate the neutral and ion densities, and temperatures.
 
@@ -465,18 +516,30 @@ class GlowModel(Singleton):
         # Used constants
         time = self._time
         glat, glon = self._ds.attrs['glatlon']
+        if version not in ('MSIS00_IRI90', 'MSIS21_IRI20'):
+            raise ValueError(f'Invalid atmosphere version: {version}')
+        # Check version and settings
+        if settings is not None:
+            if version == 'MSIS00_IRI90' and not isinstance(settings[1], Iri90Settings):
+                raise ValueError('For MSIS00_IRI90, settings[1] must be of type Iri90Settings')
+            elif version == 'MSIS21_IRI20' and not isinstance(settings[1], Iri20Settings):
+                raise ValueError('For MSIS21_IRI20, settings[1] must be of type Iri20Settings')
+            msis_set, iri_set = settings
+        else:
+            msis_set = Msis00Settings() if version == 'MSIS00_IRI90' else Msis21Settings()
+            iri_set = Iri90Settings() if version == 'MSIS00_IRI90' else Iri20Settings()
 
         # Sanitize the inputs
         if density_perturbation is None:
-            density_perturbation = ones(7, dtype=float32)
+            dpart = ones(7, dtype=float32)
         else:
-            density_perturbation = asarray(density_perturbation, dtype=float32)
-            if density_perturbation.ndim != 1 or len(density_perturbation) != 7:
+            dpart = asarray(density_perturbation, dtype=float32)
+            if dpart.ndim != 1 or len(dpart) != 7:
                 raise ValueError('Density perturbation must be a sequence of length 7')
-            if any(density_perturbation <= 0):
+            if any(dpart <= 0):
                 raise ValueError('Density perturbation must be positive.')
 
-        self._denpert = density_perturbation
+        self._denpert = dpart
 
         if tec is not None:
             if isinstance(tec, Dataset):
@@ -486,51 +549,54 @@ class GlowModel(Singleton):
                     raise ValueError('TEC dataset does not contain the time %s' % time)
                 gdlat = geocent_to_geodet(glat)
                 tec = float(tec.interp(coords={'timestamps': time.timestamp(), 'gdlat': gdlat, 'glon': glon}).tec)
-            if isnan(tec):
+            if isnan(float(tec)):
                 tec = 1
                 warnings.warn(RuntimeWarning(f'<{glat:.2f}, {glon:.2f}> TEC is NaN, using 1 TECU instead'))
-            if tec <= 0:
+            if tec <= 0:  # type: ignore
                 raise ValueError('TEC must be positive.')
-            if tec > 200:
-                raise ValueError('TEC must be in TECU. 1 TECU = 10^16 electrons/m^2')
 
         # ! Calculate local solar time:
         stl = (cg.ut/3600. + cg.glong/15.) % 24
 
-        jf = full(12, 1, dtype=np.int32, order='F')
-        oarr = zeros(30, dtype=float32, order='F')
-        if f2_peak == 'URSI':
-            jf[4] = 0
-        if hmf2 is not None:
-            jf[8] = 0
-            oarr[1] = hmf2
-        if nmf2 is not None:
-            jf[7] = 0
-            oarr[0] = nmf2
+        if version == 'MSIS00_IRI90':
+            msis = NrlMsis00(msis_set)
+            ds_msis = msis.evaluate(time, glat, glon, self._z, geomag_params=self._geomag_params, tzaware=self._tzaware)
+            iri = Iri90()
+            _, ds_iri = iri.evaluate(time, glat, glon, self._z, cg.f107a, tzaware=self._tzaware, settings=iri_set)  # type: ignore
+        else:
+            msis = NrlMsis21(msis_set)
+            ds_msis = msis.evaluate(time, glat, glon, self._z, geomag_params=self._geomag_params, tzaware=self._tzaware)
+            iri = Iri2020(iri_set)
+            _, ds_iri = iri.evaluate(time, glat, glon, self._z, tzaware=self._tzaware)
 
-        # ! Call MZGRID to calculate neutral atmosphere parameters:
-        (cg.zo, cg.zo2, cg.zn2, cg.zns, cg.znd, cg.zno, cg.ztn,
-         cg.zun, cg.zvn, cg.ze, cg.zti, cg.zte, cg.zxden) = \
-            mzgrid(cg.nex, cg.idate, cg.ut, cg.glat, cg.glong,
-                   stl, cg.f107a, cg.f107, cg.f107p, cg.ap, self._z,
-                   jf, oarr, IRI90_DIR)
+        # Fill in the cglow arrays from the datasets
+        cg.zo[:] = ds_msis['O'].values.astype(float32, order='F')
+        cg.zo2[:] = ds_msis['O2'].values.astype(float32, order='F')
+        cg.zn2[:] = ds_msis['N2'].values.astype(float32, order='F')
+        cg.zno[:] = ds_msis['NO'].values.astype(float32, order='F')
+        cg.zns[:] = ds_msis['N'].values.astype(float32, order='F')
+        cg.znd[:] = np.float32(0.0)  # N(2D) calculated by GLOW
+        cg.ztn[:] = ds_msis['Tn'].values.astype(float32, order='F')
+        cg.zti[:] = ds_iri['Ti'].values.astype(float32, order='F')
+        cg.zte[:] = ds_iri['Te'].values.astype(float32, order='F')
+        cg.ze[:] = ds_iri['Ne'].values.astype(float32, order='F')
 
         # Apply the density perturbations
-        cg.zo *= density_perturbation[0]
-        cg.zo2 *= density_perturbation[1]
-        cg.zn2 *= density_perturbation[2]
-        cg.zno *= density_perturbation[3]
-        cg.zns *= density_perturbation[4]
-        cg.znd *= density_perturbation[5]
-        cg.ze *= density_perturbation[6]
+        cg.zo *= dpart[0]
+        cg.zo2 *= dpart[1]
+        cg.zn2 *= dpart[2]
+        cg.zno *= dpart[3]
+        cg.zns *= dpart[4]
+        cg.znd *= dpart[5]
+        cg.ze *= dpart[6]
 
         tecscale = 1
 
         # Scale the electron density to match the TEC
         if tec is not None:
-            tec *= 1e12  # convert to num / cm^-2
+            tec *= 1e12  # convert to num / cm^-2 # type: ignore
             ne = interpolate_nan(cg.ze, inplace=False)  # Filter out NaNs
-            iritec = trapz(ne, cg.zz)  # integrate the electron density
+            iritec = trapezoid(ne, cg.zz)  # integrate the electron density
             tecscale = tec / iritec  # scale factor
             cg.ze = cg.ze * tecscale  # scale the electron density to match the TEC
             cg.zxden[:, :] = cg.zxden[:, :] * tecscale  # scale the ion densities to match the TEC
@@ -584,46 +650,51 @@ class GlowModel(Singleton):
             'description': 'Scaling factor applied to the electron density to match the TEC. 1.0 means no scaling.',
         })
 
-        ds.coords['denperturb'] = ('denperturb', density_perturbation, {
+        ds.coords['denperturb'] = ('denperturb', dpart, {
             'long_name': 'Density Perturbation',
             'description': 'Density perturbation applied to the atmospheric densities. 1.0 means no perturbation.',
         })
 
-        ds.attrs['nmf2'] = oarr[0]
-        ds.attrs['hmf2'] = (oarr[1])
-        ds.attrs['nmf1'] = (oarr[2])
-        ds.attrs['hmf1'] = (oarr[3])
-        ds.attrs['nme'] = (oarr[4])
-        ds.attrs['hme'] = (oarr[5])
-        ds.attrs['nmd'] = (oarr[6])
-        ds.attrs['hmd'] = (oarr[7])
+        ds.attrs['nmf2'] = ds_iri.attrs['nmF2']
+        ds.attrs['hmf2'] = ds_iri.attrs['hmF2']
+        ds.attrs['nmf1'] = ds_iri.attrs['nmF1']
+        ds.attrs['hmf1'] = ds_iri.attrs['hmF1']
+        ds.attrs['nme'] = ds_iri.attrs['nmE']
+        ds.attrs['hme'] = ds_iri.attrs['hmE']
+        ds.attrs['nmd'] = ds_iri.attrs['nmD']
+        ds.attrs['hmd'] = ds_iri.attrs['hmD']
 
         self._atm = True
         return
 
-    def radtrans(self, xuvfac: int = 3, jlocal: bool = False, kchem: int = 4, *,
-                 ion_n: Iterable = None,
-                 ion_n2: Iterable = None,
-                 ion_o: Iterable = None,
-                 ion_o2: Iterable = None,
-                 ion_no: Iterable = None):
+    def radtrans(
+        self,
+        xuvfac: int = 3,
+        jlocal: bool = False,
+        kchem: int = 4, *,
+        ion_n: Optional[Sequence] = None,
+        ion_n2: Optional[Sequence] = None,
+        ion_o: Optional[Sequence] = None,
+        ion_o2: Optional[Sequence] = None,
+        ion_no: Optional[Sequence] = None
+    ) -> None:
         """## Run the radiative transfer model.
         Executes the following subroutines in order:
-         - `glowfort.fieldm`: Calculate the magnetic dip angle and SZA (radians).
-         - `glowfort.ssflux`: Scale the solar flux using scaling mode and F10.7 values.
-         - `glowfort.rcolum`: Calculate slant path column densities of major species in
+          - `glowfort.fieldm`: Calculate the magnetic dip angle and SZA (radians).
+          - `glowfort.ssflux`: Scale the solar flux using scaling mode and F10.7 values.
+          - `glowfort.rcolum`: Calculate slant path column densities of major species in
             the direction of the sun.
-         - `glowfort.ephoto`: Calculate the photoelectron production spectrum and 
+          - `glowfort.ephoto`: Calculate the photoelectron production spectrum and 
             photoionization rates as a function of altitude, unless all altitudes
             are dark.
-         - `glowfort.qback`: Add background ionization to photoionization.
-         - `glowfort.etrans`: Calculate photoelectron and auroral electron transport 
-           and electron impact excitation rates, unless there are no energetic
-           electrons, in which case zero arrays.
-         - `glowfort.gchem`: Calculate the densities of excited and ionized
-           constituents, airglow emission rates, and vertical column brightness.
-         - `glowfort.bands`: Calculate the LBH specific airglow emission rates.
-         - `glowfort.conduct`: Calculate the Pederson and Hall conductivities.
+          - `glowfort.qback`: Add background ionization to photoionization.
+          - `glowfort.etrans`: Calculate photoelectron and auroral electron transport 
+            and electron impact excitation rates, unless there are no energetic
+            electrons, in which case zero arrays.
+          - `glowfort.gchem`: Calculate the densities of excited and ionized
+            constituents, airglow emission rates, and vertical column brightness.
+          - `glowfort.bands`: Calculate the LBH specific airglow emission rates.
+          - `glowfort.conduct`: Calculate the Pederson and Hall conductivities.
 
         ### Args:
             - `xuvfac (int, optional)`: XUV enhancement factor. Defaults to 3.
@@ -667,31 +738,31 @@ class GlowModel(Singleton):
         if kchem == 1:
             if ion_n is None or ion_n2 is None:
                 raise ValueError('N+ and N2+ density profiles must be specified for kchem = 1')
-            ion_n = asarray(ion_n, dtype=float32, order='F')
-            ion_n2 = asarray(ion_n2, dtype=float32, order='F')
-            if ion_o.ndim != 1 or ion_o2.ndim != 1 or len(ion_o) != cglow.jmax or len(ion_o2) != cglow.jmax:
+            ion_ns = asarray(ion_n, dtype=float32, order='F')
+            ion_n2s = asarray(ion_n2, dtype=float32, order='F')
+            if ion_ns.ndim != 1 or ion_n2s.ndim != 1 or len(ion_ns) != cglow.jmax or len(ion_n2s) != cglow.jmax:
                 raise ValueError('Invalid ion density profiles')
-            cg.zxden[3, :] = ion_n
-            cg.zxden[4, :] = ion_n2
+            cg.zxden[3, :] = ion_ns
+            cg.zxden[4, :] = ion_n2s
 
         if 0 < kchem < 3:
             if ion_o is not None:
-                ion_o = asarray(ion_o, dtype=float32, order='F')
-                if ion_o.ndim != 1 or len(ion_o) != cglow.jmax:
+                ion_os = asarray(ion_o, dtype=float32, order='F')
+                if ion_os.ndim != 1 or len(ion_os) != cglow.jmax:
                     raise ValueError('Invalid O+ density profile.')
-                cg.zxden[2, :] = ion_o
+                cg.zxden[2, :] = ion_os
                 kchemsrc['O+'] = 'Custom'
             if ion_o2 is not None:
-                ion_o2 = asarray(ion_o2, dtype=float32, order='F')
-                if ion_o2.ndim != 1 or len(ion_o2) != cglow.jmax:
+                ion_o2s = asarray(ion_o2, dtype=float32, order='F')
+                if ion_o2s.ndim != 1 or len(ion_o2s) != cglow.jmax:
                     raise ValueError('Invalid O2+ density profile.')
-                cg.zxden[5, :] = ion_o2
+                cg.zxden[5, :] = ion_o2s
                 kchemsrc['O2+'] = 'Custom'
             if ion_no is not None:
-                ion_no = asarray(ion_no, dtype=float32, order='F')
-                if ion_no.ndim != 1 or len(ion_no) != cglow.jmax:
+                ion_nos = asarray(ion_no, dtype=float32, order='F')
+                if ion_nos.ndim != 1 or len(ion_nos) != cglow.jmax:
                     raise ValueError('Invalid NO+ density profile.')
-                cg.zxden[6, :] = ion_no
+                cg.zxden[6, :] = ion_nos
                 kchemsrc['NO+'] = 'Custom'
 
         cglow.kchem = kchem
@@ -718,21 +789,27 @@ class GlowModel(Singleton):
         ds['ionrate'] = Variable('alt_km', cg.tir,   density_attrs)
 
         ds['pederson'] = \
-            Variable('alt_km',
-                     pedcond,
-                     {'units': 'S m^{-1}',
-                      'long_name': 'Pederson Conductivity',
-                      'description': 'Pederson Conductivity',
-                      'source': 'IRI-90'}
-                     )
+            Variable(
+                'alt_km',
+            pedcond,
+            {
+                'units': 'S m^{-1}',
+                'long_name': 'Pederson Conductivity',
+                'description': 'Pederson Conductivity',
+                'source': 'IRI-90'
+            }
+        )
         ds['hall'] = \
-            Variable('alt_km',
-                     hallcond,
-                     {'units': 'S m^{-1}',
-                      'long_name': 'Hall Conductivity',
-                      'description': 'Hall Conductivity',
-                      'source': 'IRI-90'}
-                     )
+            Variable(
+                'alt_km',
+            hallcond,
+            {
+                'units': 'S m^{-1}',
+                'long_name': 'Hall Conductivity',
+                'description': 'Hall Conductivity',
+                'source': 'IRI-90'
+            }
+        )
         # Emissions
         ds['ver'] = Variable(('alt_km', 'wavelength'), cg.zeta.T, {
             'long_name': 'Volume Emission Rate',
@@ -852,7 +929,7 @@ class GlowModel(Singleton):
             'description': 'Upward hemispherical electron flux',
             'source': 'GLOW'
         })
-        
+
         ds['edel'] = Variable(('energy'), cg.edel, {
             'long_name': 'Energy bin width',
             'units': 'eV',
@@ -863,17 +940,19 @@ class GlowModel(Singleton):
         self._evaluated = True
         return
 
-    def evaluate(self, xuvfac: int = 3, jlocal: bool = False, kchem: int = 4, *,
-                 density_perturbation: Sequence = None,
-                 tec: Numeric | Dataset = None,
-                 hmf2: Optional[Numeric] = None,
-                 nmf2: Optional[Numeric] = None,
-                 f2_peak: HmFSource = 'URSI',
-                 ion_n: Iterable = None,
-                 ion_n2: Iterable = None,
-                 ion_o: Iterable = None,
-                 ion_o2: Iterable = None,
-                 ion_no: Iterable = None) -> xarray.Dataset:
+    def evaluate(
+        self,
+        xuvfac: int = 3, jlocal: bool = False, kchem: int = 4, *,
+        density_perturbation: Optional[Sequence] = None,
+        tec: Optional[Numeric | Dataset] = None,
+        ion_n: Optional[Sequence] = None,
+        ion_n2: Optional[Sequence] = None,
+        ion_o: Optional[Sequence] = None,
+        ion_o2: Optional[Sequence] = None,
+        ion_no: Optional[Sequence] = None,
+        version: AtmosphereKind = 'MSIS00_IRI90',
+        settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    ) -> xarray.Dataset:
         """## Evaluate the GLOW model.
         This function runs the atmosphere and radiative transfer models in sequence.
         If electron precipitation is required, use the :method:`GlowModel.precipitation` method before calling this function.
@@ -896,7 +975,7 @@ class GlowModel(Singleton):
         ### Returns:
             - `xarray.Dataset`: GLOW model output dataset.
         """
-        self.atmosphere(density_perturbation, tec, hmf2, nmf2, f2_peak)
+        self.atmosphere(density_perturbation, tec, version=version, settings=settings)
         self.radtrans(xuvfac, jlocal, kchem, ion_n=ion_n, ion_n2=ion_n2, ion_o=ion_o, ion_o2=ion_o2, ion_no=ion_no)
         return self.result()
 
@@ -936,17 +1015,18 @@ class GlowModel(Singleton):
             raise RuntimeError('GLOW model not initialized')
         return self._ds['alt_km'].copy(deep=True)
 
-    def __call__(self, xuvfac: int = 3, jlocal: bool = False, kchem: int = 4, *,
-                 density_perturbation: Sequence = None,
-                 tec: Numeric | Dataset = None,
-                 hmf2: Optional[Numeric] = None,
-                 nmf2: Optional[Numeric] = None,
-                 f2_peak: HmFSource = 'URSI',
-                 ion_n: Iterable = None,
-                 ion_n2: Iterable = None,
-                 ion_o: Iterable = None,
-                 ion_o2: Iterable = None,
-                 ion_no: Iterable = None) -> xarray.Dataset:
+    def __call__(
+        self, xuvfac: int = 3, jlocal: bool = False, kchem: int = 4, *,
+        density_perturbation: Optional[Sequence] = None,
+        tec: Optional[Numeric | Dataset] = None,
+        ion_n: Optional[Sequence] = None,
+        ion_n2: Optional[Sequence] = None,
+        ion_o: Optional[Sequence] = None,
+        ion_o2: Optional[Sequence] = None,
+        ion_no: Optional[Sequence] = None,
+        version: AtmosphereKind = 'MSIS00_IRI90',
+        settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    ) -> xarray.Dataset:
         """## Evaluate the GLOW model.
         This function runs the atmosphere and radiative transfer models in sequence.
         If electron precipitation is required, use the :method:`GlowModel.precipitation` method before calling this function.
@@ -966,27 +1046,26 @@ class GlowModel(Singleton):
         ### Returns:
             - `xarray.Dataset`: GLOW model output dataset.
         """
-        return self.evaluate(xuvfac, jlocal, kchem, density_perturbation=density_perturbation, tec=tec, ion_n=ion_n, ion_n2=ion_n2, ion_o=ion_o, ion_o2=ion_o2, ion_no=ion_no, hmf2=hmf2, nmf2=nmf2, f2_peak=f2_peak)
+        return self.evaluate(xuvfac, jlocal, kchem, density_perturbation=density_perturbation, tec=tec, ion_n=ion_n, ion_n2=ion_n2, ion_o=ion_o, ion_o2=ion_o2, ion_no=ion_no, version=version, settings=settings)
 
 
 def generic(time: datetime,
             glat: Numeric,
             glon: Numeric,
             nbins: int = 100,
-            Q: Numeric = None,
-            Echar: Numeric = None,
-            density_perturbation: Sequence = None,
+            Q: Optional[Numeric] = None,
+            Echar: Optional[Numeric] = None,
+            density_perturbation: Optional[Sequence] = None,
             *,
-            geomag_params: dict | Iterable = None,
+            geomag_params: Optional[dict] = None,
             tzaware: bool = False,
-            tec: Numeric | Dataset = None,
-            hmf2: Numeric = None,
-            nmf2: Numeric = None,
-            f2_peak: HmFSource = 'URSI',
-            metadata: dict = None,
+            version: AtmosphereKind = 'MSIS00_IRI90',
+            settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+            tec: Optional[Numeric | Dataset] = None,
+            metadata: Optional[dict] = None,
             jmax: int = 250,
             sflux: FluxSource | Tuple[Sequence, Sequence, Sequence] = 'EUVAC',
-            xuvfac: Numeric = 3,
+            xuvfac: int = 3,
             kchem: int = 4,
             jlocal: bool = False,
             itail: bool = False,
@@ -1056,27 +1135,30 @@ def generic(time: datetime,
     mod.initialize(jmax, nbins, sflux)
     mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware)
     mod.precipitation(Q, Echar, itail=itail, fmono=fmono, emono=emono)
-    ds = mod.evaluate(xuvfac, jlocal, kchem, density_perturbation=density_perturbation,
-                      tec=tec, hmf2=hmf2, nmf2=nmf2, f2_peak=f2_peak)
+    ds = mod.evaluate(
+        xuvfac, jlocal, kchem, density_perturbation=density_perturbation,
+        tec=tec, version=version, settings=settings
+    )
     _ = metadata
     return ds
 
 
-def maxwellian(time: datetime,
-               glat: Numeric,
-               glon: Numeric,
-               Nbins: int,
-               Q: Numeric,
-               Echar: Numeric,
-               density_perturbation: Sequence = None,
-               *,
-               geomag_params: dict | Iterable = None,
-               tzaware: bool = False,
-               tec: Numeric | Dataset = None,
-               hmf2: Optional[Numeric] = None,
-               nmf2: Optional[Numeric] = None,
-               f2_peak: HmFSource = 'URSI',
-               metadata: dict = None) -> xarray.Dataset:
+def maxwellian(
+    time: datetime,
+    glat: Numeric,
+    glon: Numeric,
+    Nbins: int,
+    Q: Numeric,
+    Echar: Numeric,
+    density_perturbation: Optional[Sequence] = None,
+    *,
+    geomag_params: Optional[dict] = None,
+    tzaware: bool = False,
+    tec: Optional[Numeric | Dataset] = None,
+    version: AtmosphereKind = 'MSIS00_IRI90',
+    settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    metadata: Optional[dict] = None
+) -> xarray.Dataset:
     """## GLOW model with electron precipitation assuming Maxwellian distribution.
 
     ### Args:
@@ -1123,27 +1205,28 @@ def maxwellian(time: datetime,
         alt_km = 250
     else:
         alt_km = None
-    mod.initialize(alt_km, Nbins)
+    mod.initialize(alt_km, Nbins)  # type: ignore
     mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware)
     mod.precipitation(Q, Echar)
-    ds = mod(density_perturbation=density_perturbation, tec=tec, hmf2=hmf2, nmf2=nmf2, f2_peak=f2_peak)
+    ds = mod(density_perturbation=density_perturbation, tec=tec, version=version, settings=settings)
     _ = metadata
     return ds
 
 
-def no_precipitation(time: datetime,
-                     glat: Numeric,
-                     glon: Numeric,
-                     Nbins: int = 100,
-                     density_perturbation: Sequence = None,
-                     *,
-                     geomag_params: dict | Iterable = None,
-                     tzaware: bool = False,
-                     tec: Numeric | Dataset = None,
-                     hmf2: Optional[Numeric] = None,
-                     nmf2: Optional[Numeric] = None,
-                     f2_peak: HmFSource = 'URSI',
-                     metadata: dict = None) -> xarray.Dataset:
+def no_precipitation(
+    time: datetime,
+    glat: Numeric,
+    glon: Numeric,
+    Nbins: int = 100,
+    density_perturbation: Optional[Sequence] = None,
+    *,
+    geomag_params: Optional[dict] = None,
+    tzaware: bool = False,
+    tec: Optional[Numeric | Dataset] = None,
+    version: AtmosphereKind = 'MSIS00_IRI90',
+    settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    metadata: Optional[dict] = None
+) -> xarray.Dataset:
     """## GLOW model with no electron precipitation.
 
     ### Args:
@@ -1188,29 +1271,30 @@ def no_precipitation(time: datetime,
         alt_km = 250
     else:
         alt_km = None
-    mod.initialize(alt_km, Nbins)
+    mod.initialize(alt_km, Nbins)  # type: ignore
     mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware)
-    ds = mod(density_perturbation=density_perturbation, tec=tec, hmf2=hmf2, nmf2=nmf2, f2_peak=f2_peak)
+    ds = mod(density_perturbation=density_perturbation, tec=tec, version=version, settings=settings)
     _ = metadata
     return ds
 
 
-def monoenergetic(time: datetime,
-                  glat: Numeric,
-                  glon: Numeric,
-                  Nbins: int = 100,
-                  fmono: float = 0,
-                  emono: float = 0,
-                  itail: bool = False,
-                  density_perturbation: Sequence = None,
-                  *,
-                  geomag_params: dict | Iterable = None,
-                  tzaware: bool = False,
-                  tec: Numeric | Dataset = None,
-                  hmf2: Optional[Numeric] = None,
-                  nmf2: Optional[Numeric] = None,
-                  f2_peak: HmFSource = 'URSI',
-                  metadata: dict = None) -> xarray.Dataset:
+def monoenergetic(
+    time: datetime,
+    glat: Numeric,
+    glon: Numeric,
+    Nbins: int = 100,
+    fmono: float = 0,
+    emono: float = 0,
+    itail: bool = False,
+    density_perturbation: Optional[Sequence] = None,
+    *,
+    geomag_params: Optional[dict] = None,
+    tzaware: bool = False,
+    tec: Optional[Numeric | Dataset] = None,
+    version: AtmosphereKind = 'MSIS00_IRI90',
+    settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    metadata: Optional[dict] = None
+) -> xarray.Dataset:
     """## GLOW model with monoenergetic precipitation.
 
     ### Args:
@@ -1258,9 +1342,9 @@ def monoenergetic(time: datetime,
         alt_km = 250
     else:
         alt_km = None
-    mod.initialize(alt_km, Nbins)
+    mod.initialize(alt_km, Nbins)  # type: ignore
     mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware)
     mod.precipitation(0.001, emono/2., fmono=fmono, emono=emono, itail=itail)
-    ds = mod(density_perturbation=density_perturbation, tec=tec, hmf2=hmf2, nmf2=nmf2, f2_peak=f2_peak)
+    ds = mod(density_perturbation=density_perturbation, tec=tec, version=version, settings=settings)
     _ = metadata
     return ds
