@@ -596,6 +596,12 @@ class GlowModel(Singleton):
             ds_msis = msis.evaluate(time, glat, glon, self._z, geomag_params=self._geomag_params, tzaware=self._tzaware)
             iri = Iri90()
             _, ds_iri = iri.evaluate(time, glat, glon, self._z, cg.f107a, tzaware=self._tzaware, settings=iri_set)  # type: ignore
+            # Enforce Ti >= Tn
+            fidx = ds_iri.Ti.values < ds_msis.Tn.values
+            ds_iri.Ti.values[fidx] = ds_msis.Tn.values[fidx]
+            # Enforce Te >= Tn
+            fidx = ds_iri.Te.values < ds_msis.Tn.values
+            ds_iri.Te.values[fidx] = ds_msis.Tn.values[fidx]
         else:
             msis = NrlMsis21(msis_set)
             ds_msis = msis.evaluate(time, glat, glon, self._z, geomag_params=self._geomag_params, tzaware=self._tzaware)

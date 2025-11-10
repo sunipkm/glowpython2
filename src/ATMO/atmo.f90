@@ -4,8 +4,8 @@ subroutine msis00_init(data_dir, sw)
    implicit none
    integer, save :: snoem_initialized = 0
    character(len=*), intent(in) :: data_dir ! directory containing data files
-   integer, intent(in), optional :: sw(25) ! MSIS switch array
-   integer :: usesw(25)
+   real, intent(in), optional :: sw(25) ! MSIS switch array
+   real :: usesw(25)
    if (present(sw)) then
       usesw(:) = sw(:)
    else
@@ -24,19 +24,19 @@ subroutine msis00_eval(iyd,sec,alt,glat,glong,f107a,f107,ap,&
    use noem, only: snoemint
    implicit none
    ! MSIS Legacy subroutine arguments
-   integer, intent(in)         :: iyd
-   real(4), intent(in)         :: sec
-   real(4), intent(in)         :: alt(nalt)
-   real(4), intent(in)         :: glat
-   real(4), intent(in)         :: glong
-   real(4), intent(in)         :: f107a
-   real(4), intent(in)         :: f107
-   real(4), intent(in)         :: ap(7)
-   integer, intent(in)         :: nalt
-   real(4), intent(inout)      :: d(10,nalt), t(nalt)
-   real(4), intent(out)        :: exot
-   integer                     :: i, j
-   real(4)                     :: tmpd(9), tmpt(2), stl, mlon, mlat
+   integer, intent(in)      :: iyd
+   real, intent(in)         :: sec
+   real, intent(in)         :: alt(nalt)
+   real, intent(in)         :: glat
+   real, intent(in)         :: glong
+   real, intent(in)         :: f107a
+   real, intent(in)         :: f107
+   real, intent(in)         :: ap(7)
+   integer, intent(in)      :: nalt
+   real, intent(inout)      :: d(10,nalt), t(nalt)
+   real, intent(out)        :: exot
+   integer                  :: i, j
+   real                     :: tmpd(9), tmpt(2), stl, mlon, mlat, no(nalt)
    ! Calculate local solar time
    stl = sec/3600. + glong/15.
    if (stl < 0.) stl = stl + 24.
@@ -54,7 +54,8 @@ subroutine msis00_eval(iyd,sec,alt,glat,glong,f107a,f107,ap,&
    ! Calculate magnetic latitude
    call GEOMAG(0,glong,glat,mlon,mlat)
    ! Call SNOEMINT to obtain NO profile from the Nitric Oxide Empirical Model (NOEM)
-   call snoemint(iyd, mlat, f107, ap(1), nalt, alt, t, d(10,:))
+   call snoemint(iyd, mlat, f107, ap(1), nalt, alt, t, no)
+   d(10,:) = no(:)
 end subroutine msis00_eval
 
 subroutine iri90_eval(jf,jmag,glat,glong,mmdd,sec,f107a,z, &
