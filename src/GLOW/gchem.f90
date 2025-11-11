@@ -220,8 +220,6 @@
             0.43, 0.51, 0.10, 0.60, 0.54, 0.44, 0.80, 0.20, 1.00, 0.33, &
             0.33, 0.34, 0.21, 0.20, 0.10, 0.11, 0.65, 0.20, 0.24, 0.02, &
             0.18, 0.72, 0.75, 0.10, 0.00, 0.05, 0.02, 0.70, 0.54, 0.00  /
-
-      print *, 'GLOW GCHEM: Chemical calculations with KCHEM =', KCHEM
 !
 !
     IF (KCHEM .EQ. 0) RETURN
@@ -357,7 +355,6 @@
     ELSE
       J200=0
     ENDIF
-    print *, 'GLOW GCHEM: Electron density calculated up to level', ZZ(J200)*1.E-5, 'km (level', J200, ')'
 !
 !
 ! Iterative loop assures that electron density and feedback reactions
@@ -385,12 +382,6 @@
             + A(8) &
             + A(7)
       DEN(1,I) = P(1,I) / L(1,I)
-      if (I.eq.J200-1) then
-            print *, 'GLOW GCHEM ITER=', iter, ' O+(2P) at 200 km =', &
-            SION(1,I), PIA(1,I), '->', &
-            PHOTOI(3,1,I), PHOTOI(5,1,I), PHOTOI(4,2,I), OEI(I), O2EI(I), &
-            '->', P(1,I), '/',L(1,I), 'cm-3'
-      endif
 !
 !
 ! O+(2D):
@@ -408,9 +399,6 @@
             + KZ(14,I) * E(I) &
             + A(6)
       DEN(2,I) = P(2,I) / L(2,I)
-      if (I.eq.J200-1) then
-            print *, 'GLOW GCHEM ITER=', iter, ' O+(2D) at 200 km =', P(2,I),'/',L(2,I), 'cm-3'
-      endif
 !
 !
 ! N+:
@@ -422,9 +410,6 @@
         L(4,I) = KZ(25,I) * ZO2(I) &
                + KZ(32,I) * ZO(I)
         DEN(4,I) = P(4,I) / L(4,I)
-      if (I.eq.J200-1) then
-            print *, 'GLOW GCHEM ITER=', iter, ' N+ at 200 km =', P(4,I),'/',L(4,I), 'cm-3'
-      endif
       ENDIF
 !
 !
@@ -447,9 +432,6 @@
               + KZ(2,I) * ZO2(I) &
               + KZ(38,I) * DEN(10,I)
         DEN(3,I) = P(3,I) / L(3,I)
-      if (I.eq.J200-1) then
-            print *, 'GLOW GCHEM ITER=', iter, ' O+(4S) at 200 km =', P(3,I),'/',L(3,I), 'cm-3' 
-      endif
       ENDIF
 !
     ENDDO    ! bottom of atomic ion loop
@@ -507,19 +489,14 @@
       if (iter .eq. 1) then
         do i=1,j200
           tatomi=den(1,i)+den(2,i)+den(3,i)+den(4,i)
-          if (i.eq.j200-1) print *, 'GLOW GCHEM: Initial tatomi at', ZZ(i)*1.E-5, 'km is', tatomi
           alphaef=(kz(22,i)+kz(24,i))/2.
-          if (i.eq.j200-1)print *, 'GLOW GCHEM: Initial alphaef at', ZZ(i)*1.E-5, 'km is', alphaef
           e(i)=(tatomi+sqrt(tatomi**2+4.*tir(i)/alphaef))/2.
-          if (i.eq.j200-1)print *, 'GLOW GCHEM: Initial electron density at', ZZ(i)*1.E-5, 'km is', e(i)
         enddo
       else
         do i=1,j200
           toti = den(1,i)+den(2,i)+den(3,i)+den(4,i) &
                 +den(5,i)+den(6,i)+den(7,i)
-          if (i.eq.j200-1)print *, 'GLOW GCHEM: Iter', iter, ' Updated tatomi at', ZZ(i)*1.E-5, 'km is', toti
           e(i) = (toti + e(i)) / 2.
-      if (i.eq.j200-1) print *, 'GLOW GCHEM: Iter', iter, ' Updated electron density at', ZZ(i)*1.E-5, 'km is', e(i)
         enddo
       endif
 !

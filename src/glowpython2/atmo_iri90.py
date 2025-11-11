@@ -111,7 +111,6 @@ class Attribute:
 
 class Iri90(Singleton):
     def _init(self):
-        print(f'Initializing IRI-90 model...{os.getpid()}')
         self.settings: Settings = Settings()
         self._benchmark = False
         self._call = 0

@@ -66,8 +66,8 @@ subroutine etrans
 
    implicit none
 
-   integer,save :: ifirst=1
-   integer :: ii,ib,ibb,i,n,jj,j,k,jjj4,iv,ll,kk,im,iq
+   ! integer,save :: ifirst=1
+   integer :: ii,ibb,i,n,jj,j,k,jjj4,iv,ll,kk,im,iq
    real :: prod(jmax), eprod(jmax), t1(jmax), t2(jmax), tsa(nmaj), &
       produp(jmax,nbins), prodwn(jmax,nbins), &
       phiup(jmax), phidwn(jmax), tsigne(jmax), taue(jmax), &
@@ -76,32 +76,34 @@ subroutine etrans
       alpha(jmax),beta(jmax),gamma(jmax),psi(jmax),del2(jmax), &
       delp(jmax),delm(jmax),dels(jmax),den(jmax), &
       delz(jmax),dela(jmax)
-   real :: ddip,sindip,rmusin,phiout,dag,et,eet,fluxj,edep,epe,ephi,aprod,ein,eout,fac
+   real :: sindip,rmusin(jmax),phiout,dag,et,eet,fluxj,edep,epe,ephi,&
+      aprod,ein,eout,fac,rmu300,ddip
+   logical :: flag = .false.
    real,parameter :: avmu=0.5
-
 
    potion = (/16.,16.,18./)
    ierr = 0
    fac = 0.
-   print *, 'GLOW ETRANS: Starting electron transport calculation. DIP =', dip
-   ddip = abs(dip)
-   if (ddip < 0.01) ddip = 0.01
-   print *, 'GLOW ETRANS: Adjusted DIP =', ddip
-   sindip = sin(ddip)
-   print *, 'GLOW ETRANS: SINDIP =', sindip
-   rmusin = 1. / sindip / avmu
-   print *, 'GLOW ETRANS: RMUSIN =', rmusin
+
+   ! Calculate sin of dip angle and RMU
+   do i=1,jmax
+      ddip = abs(dip(i))
+      if (ddip .le. 0.01) ddip = 0.01
+      sindip = sin(ddip)
+      rmusin(i) = 1. / sindip / avmu
+      if (.not. flag .and. (zz(i) .ge. 300.0e5)) then
+         flag = .true.
+         rmu300 = rmusin(i)
+      endif
+   enddo
+
    psi(1)   = 1.
-!
-! First call only:  calculate cross-sectons:
-!
+   ! First call only:  calculate cross-sectons:
    ! if (ifirst == 1) then
    ! call exsect (ener, edel)
    ! ifirst = 0
    ! endif
-!
-! Zero variables:
-!
+   ! Zero variables:
    alpha(1) = 0.
    beta(1) = 0.
    gamma(1) = 0.
@@ -113,17 +115,14 @@ subroutine etrans
    aglw(:,:,:) = 0.0
    produp(:,:) = 1.0e-20
    prodwn(:,:) = 1.0e-20
-!
-! Divide downward flux at top of atmos. by average pitch angle cosine:
-!
+   ! Divide downward flux at top of atmos. by average pitch angle cosine:
    phiinf(:) = phitop(:) / avmu
-!
-! Calcualte delta z's:
-!
+   ! Calculate delta z's:
    delz(1) = zz(2)-zz(1)
    do i=2,jmax
       delz(i) = zz(i)-zz(i-1)
    enddo
+
    do i=1,jmax-1
       del2(i) = delz(i)+delz(i+1)
       dela(i) = del2(i)/2.
@@ -131,21 +130,19 @@ subroutine etrans
       delm(i) = dela(i)*delz(i)
       dels(i) = delz(i)*delz(i+1)
    enddo
+
    del2(jmax) = del2(jmax-1)
    dela(jmax) = dela(jmax-1)
    delp(jmax) = delp(jmax-1)
    delm(jmax) = delp(jmax-1)
    dels(jmax) = dels(jmax-1)
-!
-! Top of energy loop:
-!
+
+   ! Top of energy loop:
    do j=nbins,1,-1
-!
-! Calculate production:
-!
+      ! Calculate production:
       do i = 1, jmax
-         prod(i) = (pespec(j,i)+sespec(j,i)) * rmusin / edel(j)
-         eprod(i) = eprod(i) + prod(i) * ener(j) * edel(j) / rmusin
+         prod(i) = (pespec(j,i)+sespec(j,i)) * rmusin(i) / edel(j)
+         eprod(i) = eprod(i) + prod(i) * ener(j) * edel(j) / rmusin(i)
       enddo
 !
 ! Total energy loss cross section for each species:
@@ -162,16 +159,16 @@ subroutine etrans
             tsa(i) = tsa(i) + siga(i,1,j) + 1.e-18
          enddo
       endif
-!
-! Thermal electron energy loss:
-!
+      !
+      ! Thermal electron energy loss:
+      !
       jjj4 = j - 1
       if (j == 1) jjj4 = 1
       dag = ener(j) - ener(jjj4)
       if (dag <= 0.0) dag = edel(1)
-!
+      !
       do i = 1, jmax
-         et = 8.618e-5 * zte(i)
+         et = 8.618e-5 * zte(i) ! Boltzmann Constant in eV/K
          eet = ener(j) - et
          if (eet <= 0.0) then
             tsigne(i) = 0.0
@@ -179,32 +176,28 @@ subroutine etrans
             tsigne(i) = ((3.37e-12*ze(i)**0.97)/(ener(j)**0.94)) &
                * ((eet)/(ener(j) - (0.53*et))) ** 2.36
          endif
-         tsigne(i) = tsigne(i) * rmusin / dag
+         tsigne(i) = tsigne(i) * rmusin(i) / dag
       enddo
-!
-! Collision terms:
-!
+      !
+      ! Collision terms:
+      !
       do i = 1, jmax
          t1(i) = 0.0
          t2(i) = 0.0
          do iv = 1, nmaj
             t1(i) = t1(i) + zmaj(iv,i) * sigs(iv,j) * pe(iv,j)
             t2(i) = t2(i) + zmaj(iv,i) * (sigs(iv,j)*pe(iv,j) + tsa(iv))
-            !  if (i.eq.68) print *, 'GLOW T1T2: ITER=', k, 'SPECIES=', iv, 'ALT=', zz(i)*1.E-5, &
-            !             zmaj(iv,i), sigs(iv,j), pe(iv,j), tsa(iv)
          enddo
-         t1(i) = t1(i) * rmusin
-         t2(i) = t2(i) * rmusin + tsigne(i)
-         !   if (i.eq.68) print *, 'GLOW T1T2: ITER=', k, 'SPECIES=', iv, 'ALT=', zz(i)*1.E-5, &
-         !                t1(i), t2(i)
+         t1(i) = t1(i) * rmusin(i)
+         t2(i) = t2(i) * rmusin(i) + tsigne(i)
       enddo
-!
-! Bypass next section if local calculation was specified:
-!
+      !
+      ! Bypass next section if local calculation was specified:
+      !
       if (jlocal /= 1) then
-!
-! Solve parabolic d.e. by Crank-Nicholson method to find downward flux:
-!
+         !
+         ! Solve parabolic d.e. by Crank-Nicholson method to find downward flux:
+         !
          do i = 2, jmax-1
             psi(i) = 1.
             alpha(i) = (t1(i-1) - t1(i+1)) / (del2(i) * t1(i))
@@ -227,13 +220,13 @@ subroutine etrans
          fluxj = phiinf(j)
          call impit(jmax,fluxj,fac,alpha,beta,gamma,psi,del2,delp,delm,dels,den)
          phidwn(:) = den(:)
-!
-! Apply lower boundary condition: phiup=phidwn.  Should be nearly zero.
-!
+         !
+         ! Apply lower boundary condition: phiup=phidwn.  Should be nearly zero.
+         !
          phiup(1) = phidwn(1)
-!
-! Integrate back upward to calculate upward flux:
-!
+         !
+         ! Integrate back upward to calculate upward flux:
+         !
          do i = 2, jmax
             r1(i) = (t1(i)*phidwn(i) + (prod(i)+2.*produp(i,j))/2.) / t2(i)
             taue(i) = t2(i)*delz(i)
@@ -245,9 +238,9 @@ subroutine etrans
          enddo
 
       else
-!
-! Local calculation only:
-!
+         !
+         ! Local calculation only:
+         !
          do i = 1, jmax
             if (t2(i) <= t1(i)) then
                ierr = 1
@@ -258,20 +251,20 @@ subroutine etrans
          enddo
 
       endif
-!
-! Multiply fluxes by average pitch angle cosine and put in arrays:
-!
+      !
+      ! Multiply fluxes by average pitch angle cosine and put in arrays:
+      !
       do i=1,jmax
          uflx(j,i) = phiup(i) * avmu
          dflx(j,i) = phidwn(i) * avmu
       enddo
-!
-!  Calculate outgoing electron energy flux for conservation check:
-!
+      !
+      !  Calculate outgoing electron energy flux for conservation check:
+      !
       phiout = phiout + phiup(jmax) * edel(j) * ener(j)
-!
-! Cascade production:
-!
+      !
+      ! Cascade production:
+      !
       if (j > 1) then
          do k = 1, j-1
             ll = j - k
@@ -288,8 +281,8 @@ subroutine etrans
                enddo
             enddo
             do i=1,jmax
-               produp(i,ll) = produp(i,ll) + produa(i) * rmusin
-               prodwn(i,ll) = prodwn(i,ll) + prodda(i) * rmusin
+               produp(i,ll) = produp(i,ll) + produa(i) * rmusin(i)
+               prodwn(i,ll) = prodwn(i,ll) + prodda(i) * rmusin(i)
             enddo
          enddo
       endif
@@ -300,16 +293,16 @@ subroutine etrans
             prodwn(i,kk) = prodwn(i,kk)+tsigne(i)*phidwn(i)*(edel(j)/edel(kk))
          enddo
       endif
-!
-! Electron heating rate:
-!
+      !
+      ! Electron heating rate:
+      !
       dag = edel(j)
       do i = 1, jmax
          eheat(i) = eheat(i) + tsigne(i) * (phiup(i)+phidwn(i)) * dag**2
       enddo
-!
-! Electron impact excitation rates:
-!
+      !
+      ! Electron impact excitation rates:
+      !
       do ii = 1, jmax
          do i = 1, nmaj
             do ibb = 1, nei
@@ -318,31 +311,27 @@ subroutine etrans
             enddo
          enddo
       enddo
-!
-! Calculate production of secondaries into k bin for energy j bin and add to production:
-!
+      !
+      ! Calculate production of secondaries into k bin for energy j bin and add to production:
+      !
       do k = 1, iimaxx(j)
          do n = 1, nmaj
             do i = 1, jmax
                secp(n,i) = sec(n,k,j) * zmaj(n,i) * (phiup(i) + phidwn(i))
                sion(n,i) = sion(n,i) + secp(n,i) * edel(k)
-               if (i.eq.68.and.k.eq.1) then
-                  print *, 'GLOW SION: ITER=', k, 'SPECIES=', n, 'ALT=', zz(i)*1.E-5, &
-                     sec(n,k,j), zmaj(n,i), phiup(i), phidwn(i), edel(k)
-               endif
                secion(i) = secion(i) + secp(n,i) * edel(k)
-               produp(i,k) = produp(i,k) + (secp(n,i)*.5*rmusin)
-               prodwn(i,k) = prodwn(i,k) + (secp(n,i)*.5*rmusin)
+               produp(i,k) = produp(i,k) + (secp(n,i)*.5*rmusin(i))
+               prodwn(i,k) = prodwn(i,k) + (secp(n,i)*.5*rmusin(i))
             enddo
          enddo
       enddo
 
    enddo       ! bottom of energy loop
 
-   eheat(:) = eheat(:) / rmusin
-!
-! Calculate energy deposited as a function of altitude and total energy deposition:
-!
+   eheat(:) = eheat(:) / rmusin(:)
+   !
+   ! Calculate energy deposited as a function of altitude and total energy deposition:
+   !
    edep = 0.
    do im=1,jmax
       tez(im) = eheat(im)
@@ -354,9 +343,9 @@ subroutine etrans
       enddo
       edep = edep + tez(im) * dela(im)
    enddo
-!
-! Calculate energy input, output, and fractional conservation:
-!
+   !
+   ! Calculate energy input, output, and fractional conservation:
+   !
    epe = 0.0
    ephi = 0.0
    do i = 2, jmax
@@ -364,10 +353,10 @@ subroutine etrans
       epe = epe + aprod * delz(i)
    enddo
    do jj = 1, nbins
-      ephi = ephi + phiinf(jj) * ener(jj) * edel(jj) / rmusin
+      ephi = ephi + phiinf(jj) * ener(jj) * edel(jj) / rmu300
    enddo
    ein = ephi + epe
-   phiout = phiout / rmusin
+   phiout = phiout / rmu300
    eout = edep + phiout
    efrac = (eout - ein) / ein
 
