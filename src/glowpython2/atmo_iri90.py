@@ -26,10 +26,10 @@ NeModel = Literal['Model', 'Lay-Functions']  # [10] [T, F]
 class Settings:
     """Settings for IRI-90 model."""
     b0_model: B0Model = 'Table'
-    fof2_model: FoF2Model = 'CCIR'
-    ion_composition: IonComposition = 'Danilov-Yaichnikov-1985'
+    fof2_model: FoF2Model = 'URSI'
+    ion_composition: IonComposition = 'Standard'
     iri_topside: IriTopside = 'IRI-90'
-    ne_model: NeModel = 'Lay-Functions'
+    ne_model: NeModel = 'Model'
     nmf2: Optional[Numeric] = None  # [7], None for model, oarr[0] for custom
     hmF2: Optional[Numeric] = None  # [8], None for model, oarr[1] for custom
 
