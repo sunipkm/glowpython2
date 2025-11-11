@@ -28,12 +28,12 @@ matplotlib.rc(
 # rc('font',**{'family':'serif','serif':['Palatino']})
 matplotlib.rc('text', usetex=usetex)
 # %%
-time = parse('2015-12-13T10:00:00')
+time = datetime(2022, 3, 22, 18, 0) # parse('2015-3-13T10:00:00')
 glat = 42.6
 glon = -71.2
 Nbins = 250
 tec = None
-versions = ['GLOW', 'MSIS00_IRI90', 'MSIS21_IRI20']
+versions = ['MSIS00_IRI90']
 lstyles = ['-', '--', '-.']
 biglabels = ['GLOW', 'MSIS-2000 + IRI-1990', 'MSIS-2.1 + IRI-2020']
 ionos = {}

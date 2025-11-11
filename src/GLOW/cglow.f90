@@ -27,7 +27,7 @@ module cglow
 !    >    BMAG(JMAX) [Magnetic field in TESLA not GAUSS, multiply FIELDM
 !         RESULT BY 1.0e-4]
 !    >    PHITOP(NBINS), EFLUX(NF), EZERO(NF),
-!    >    SZA, DIP(JMAX) [Radians], 
+!    >    SZA, DIP [Radians], 
 !    >    EFRAC, IERR,
 !    >    ZMAJ(NMAJ,JMAX), ZCOL(NMAJ,JMAX),
 !    >    WAVE1(LMAX), WAVE2(LMAX), SFLUX(LMAX),
@@ -75,13 +75,13 @@ module cglow
 
   integer :: idate,iscale,jlocal,kchem,ierr
   real    :: ut,glat,glong,f107,f107a,f107p,ap,ef,ec
-  real    :: xuvfac, sza, efrac
+  real    :: xuvfac, sza, efrac, dip
   real,dimension(nw) :: vcb
 
   real,allocatable,dimension(:) ::             &                      ! (jmax)
     zz, zo, zn2, zo2, zno, zns, znd, zrho, ze, &                      ! (jmax)
     ztn, zti, zte, eheat, tez, ecalc, tei, tpi,&                      ! (jmax)
-    tir, bmag, dip                                                    ! (jmax)
+    tir, bmag                                                         ! (jmax)
   real(wp),allocatable,dimension(:) :: phitop, ener, edel             ! (nbins)
   real,allocatable,dimension(:)     :: wave1, wave2, sflux            ! (lmax)
   real,allocatable,dimension(:)     :: sf_rflux, sf_scale1, sf_scale2 ! (lmax)
@@ -297,7 +297,6 @@ module cglow
        tir  (jmax), &
        ecalc(jmax), &
        bmag (jmax), &
-       dip  (jmax), &
     )
 
     allocate(zxden(nex,jmax), &
@@ -362,7 +361,7 @@ module cglow
     if (allocated(ecalc)) deallocate(ecalc)
     if (allocated(tpi)) deallocate(tpi)
     if (allocated(tir)) deallocate(tir)
-    if (allocated(dip)) deallocate(dip)
+    ! if (allocated(dip)) deallocate(dip)
     if (allocated(bmag)) deallocate(bmag)
     if (allocated(phitop)) deallocate(phitop)
     if (allocated(ener)) deallocate(ener)

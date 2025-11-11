@@ -161,7 +161,7 @@ subroutine glow
 
    call solzen (idate, ut, glat, glong, sza) ! rust alternative exists
    sza = sza * pi/180.
-
+   print *, 'GLOW: Solar Zenith Angle (deg)=', sza*180./pi
 ! Scale solar flux:
 
    call ssflux (iscale, f107, f107a, xuvfac, sflux)
@@ -184,6 +184,7 @@ subroutine glow
 ! unless all altitudes are dark, in which case zero arrays:
 
    if (sza < 1.85) then
+      print *, 'GLOW: Calling EPHOTO'
       call ephoto
    else
       photoi(:,:,:) = 0.0
@@ -211,6 +212,7 @@ subroutine glow
    enddo
 
    if (teflux > 0.001 .or. sza < 1.85) then
+      print *, 'GLOW: Calling ETRANS, teflux=', teflux, ' sza(deg)=', sza*180./pi
       call etrans ! annotated
    else
       uflx(:,:) = 0.0

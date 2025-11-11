@@ -1,6 +1,7 @@
 from __future__ import annotations
 from os import path
 import os
+from matplotlib import pyplot as plt
 import pytz
 import geomagdata as gi
 from datetime import datetime, timedelta
@@ -56,6 +57,7 @@ def init_cglow() -> None:
     cglow.cglow_static_init()
     cglow.jmax = 0
     cglow.nbins = 0
+    cglow.kchem = 4
 
 
 @atexit.register
@@ -189,6 +191,7 @@ class GlowModel(Singleton):
             - `ValueError`: `wave1` and `wave2` must be sorted.
             - `ValueError`: `wave1` and `wave2` must be sorted in the same order.
         """
+        print(f'Initializing GlowModel...{os.getpid()}')
         if not self._reset:
             raise RuntimeError('Reset the model before initializing')
         # deal with altitude grid
@@ -274,6 +277,7 @@ class GlowModel(Singleton):
         ### Args:
             - `clear (bool, optional)`: Clear internal FORTRAN arrays to zero, and recalculate energy grid. Defaults to False.
         """
+        print(f'Resetting GlowModel...{os.getpid()}')
         if clear:
             cglow.cglow_dynamic_zero()  # zero out the arrays
             cglow.egrid_init()  # re-initialize energy grid
@@ -314,6 +318,7 @@ class GlowModel(Singleton):
         - `RuntimeError`: Initialize the model before setting up.
             - `RuntimeError`: Invalid type for geomagnetic parameters.
         """
+        print(f'Setting up GlowModel...{os.getpid()}')
         if not self._initd:
             raise RuntimeError('Initialize the model before setting up')
 
@@ -334,15 +339,15 @@ class GlowModel(Singleton):
             self._lon = glon
             self._magmodel = magmodel
             if magmodel == 'IGRF14':
-                dip = IGRF.dipangle(dyear, glat, glon, self._z) * np.pi / 180.0  # convert to radians
+                dip = IGRF.dipangle(dyear, glat, glon, 300.0) * np.pi / 180.0  # convert to radians
                 bfield = IGRF.fieldstrength(dyear, glat, glon, self._z)
             elif magmodel == 'POGO68':
                 dip = POGO68.dipangle(dyear, glat, glon, 300.0)*np.pi / 180.0  # convert to radians
                 bfield = POGO68.fieldstrength(dyear, glat, glon, self._z)
-                dip = np.full(len(self._z), dip, dtype=np.float32)
             else:
                 raise ValueError(f'Invalid magnetic field model: {magmodel}')
-            cg.dip[:] = dip.astype(np.float32)  # type: ignore
+            print(f'GLOW Model: Mag field {magmodel}, Dip angle: {dip}')
+            cg.dip = float(dip)  # type: ignore
             cg.bmag[:] = bfield.astype(np.float32)  # type: ignore
 
         if geomag_params is None:
@@ -374,14 +379,13 @@ class GlowModel(Singleton):
         ip['ap'] = (ap)
 
         _glon = glon  # unmodified for dataset
-        glon = glon % 360  # type: ignore
+        glon = float(glon) % 360
 
         (cg.idate, cg.ut, cg.glat, cg.glong, cg.f107a,
          cg.f107, cg.f107p, cg.ap) = \
-            (idate, utsec, glat, glon, f107a, f107, f107p, ap)
+            (idate, float(utsec), glat, glon, f107a, f107, f107p, ap)
 
-        self._stl = (cg.ut/3600. + cg.glong/15.) % 24  # type: ignore
-
+        self._stl = (float(cg.ut)/3600. + cg.glong/15.) % 24
         cg.phitop[:] = 0.
 
         ds = Dataset(
@@ -479,6 +483,7 @@ class GlowModel(Singleton):
             - `fmono (float, optional)`: Monoenergetic energy flux, erg/cm^2. Defaults to 0.
             - `emono (float, optional)`: Monoenergetic characteristic energy, eV. Defaults to 0.
         """
+        print(f'Calculating precipitation...{os.getpid()}')
         if not self._initd:
             raise RuntimeError('Initialize the model before setting up')
         ds = self._ds
@@ -490,11 +495,11 @@ class GlowModel(Singleton):
             Q = 0.0001
             Echar = 0.1
 
-        cglow.ef = Q
-        cglow.ec = Echar
+        cglow.ef = float(Q)
+        cglow.ec = float(Echar)
         cglow.itail = 1 if itail else 0
-        cglow.fmono = fmono
-        cglow.emono = emono
+        cglow.fmono = float(fmono)
+        cglow.emono = float(emono)
 
         # ! Call MAXT to put auroral electron flux specified by namelist input into phitop array:
         cg.phitop = maxt(cg.ef, cg.ec, cg.ener, cg.edel, cg.itail,
@@ -546,6 +551,7 @@ class GlowModel(Singleton):
             - `ValueError`: Supplied TEC must be positive.
             - `ValueError`: Supplied TEC must be in TECU. 1 TECU = 10^16 electrons/m^2.
         """
+        print(f'Evaluating atmosphere...{os.getpid()}, version={version}, settings={settings}')
         if not self._ready:
             raise RuntimeError('GLOW model not ready for evaluation. Run `setup` first.')
         # Used constants
@@ -609,7 +615,27 @@ class GlowModel(Singleton):
             ds_msis = msis.evaluate(time, glat, glon, self._z, geomag_params=self._geomag_params, tzaware=self._tzaware)
             iri = Iri2020(iri_set)
             _, ds_iri = iri.evaluate(time, glat, glon, self._z, tzaware=self._tzaware)
-
+        # Test
+        fig, ax = plt.subplots(1, 1, figsize=(6.4, 4.8), dpi=300)
+        tax = ax.twinx()
+        ds_iri.Ne.plot(ax=ax, y='alt_km', label='Ne (IRI)', color='blue')
+        ds_iri['O+'].plot(ax=ax, y='alt_km', label='O+ (IRI)', color='cyan') # type: ignore
+        ds_msis.O.plot(ax=ax, y='alt_km', label='O (MSIS)', color='orange')
+        ds_iri.Ti.plot(ax=tax, y='alt_km', label='Ti (IRI)', color='red', linestyle='--')
+        ds_iri.Te.plot(ax=tax, y='alt_km', label='Te (IRI)', color='purple', linestyle='--')
+        ds_msis.Tn.plot(ax=tax, y='alt_km', label='Tn (MSIS)', color='green', linestyle='--')
+        ax.set_xscale('log')
+        ax.set_xlabel('Density (cm$^{-3}$)')
+        tax.set_xlabel('Temperature (K)')
+        ax.set_ylabel('Altitude (km)')
+        ax.set_title(f'{version} Atmosphere at {glat:.2f}$^\circ$, {glon:.2f}$^\circ$ on {time.isoformat()}')
+        ax.grid(True, which='both', linestyle='--', alpha=0.5)
+        tax.grid(False)
+        ax.legend(loc='upper right')
+        tax.legend(loc='upper left')
+        tax.set_xlim(100, None)
+        fig.tight_layout()
+        fig.show()
         # Fill in the cglow arrays from the datasets
         cg.zo[:] = ds_msis['O'].values.astype(float32, order='F')
         cg.zo2[:] = ds_msis['O2'].values.astype(float32, order='F')
@@ -624,7 +650,26 @@ class GlowModel(Singleton):
         cg.zxden[2,:] = ds_iri['O+'].values.astype(float32, order='F')
         cg.zxden[5,:] = ds_iri['O2+'].values.astype(float32, order='F')
         cg.zxden[6,:] = ds_iri['NO+'].values.astype(float32, order='F')
-
+        fig, ax = plt.subplots(1, 1, figsize=(6.4, 4.8), dpi=300)
+        tax = ax.twinx()
+        ax.plot(cg.ze, self._z, label='Ne (IRI)', color='blue')
+        ax.plot(cg.zxden[2,:], self._z, label='O+ (IRI)', color='cyan')
+        ax.plot(cg.zo, self._z, label='O (MSIS)', color='orange')
+        tax.plot(cg.zti, self._z, label='Ti (IRI)', color='red', linestyle='--')
+        tax.plot(cg.zte, self._z, label='Te (IRI)', color='purple', linestyle='--')
+        tax.plot(cg.ztn, self._z, label='Tn (MSIS)', color='green', linestyle='--')
+        ax.set_xscale('log')
+        ax.set_xlabel('Density (cm$^{-3}$)')
+        tax.set_xlabel('Temperature (K)')
+        ax.set_ylabel('Altitude (km)')
+        ax.set_title(f'{version} Atmosphere (CG) at {glat:.2f}$^\circ$, {glon:.2f}$^\circ$ on {time.isoformat()}')
+        ax.grid(True, which='both', linestyle='--', alpha=0.5)
+        tax.grid(False)
+        ax.legend(loc='upper right')
+        tax.legend(loc='upper left')
+        tax.set_xlim(100, None)
+        fig.tight_layout()
+        fig.show()
         # Apply the density perturbations
         cg.zo *= dpart[0]
         cg.zo2 *= dpart[1]
@@ -649,8 +694,8 @@ class GlowModel(Singleton):
         density_attrs = {
             'long_name': 'number density',
             'units': 'cm^{-3}',
-            'source': 'MSISE-00',
-            'description': 'Neutral densities from the MSISE-00 model'
+            'source': f'{version}',
+            'description': f'Neutral densities from the {version} model'
         }
 
         # Neutral Densities
@@ -679,16 +724,15 @@ class GlowModel(Singleton):
 
         ds['Tn'] = Variable('alt_km', cg.ztn, temperature_attrs)
         ds['Tn'].attrs['comment'] = 'Netural Temperature'
-        ds['Tn'].attrs['source'] = 'MSISE-00'
+        ds['Tn'].attrs['source'] = version
 
         ds['Ti'] = Variable('alt_km', cg.zti, temperature_attrs)
         ds['Ti'].attrs['comment'] = 'Ion Temperature'
-        ds['Ti'].attrs['source'] = 'MSISE-00'
+        ds['Ti'].attrs['source'] = version
 
         ds['Te'] = Variable('alt_km', cg.zte, temperature_attrs)
         ds['Te'].attrs['comment'] = 'Electron Temperature'
-        ds['Te'].attrs['source'] = 'MSISE-00'
-
+        ds['Te'].attrs['source'] = version
         ds.coords['tecscale'] = ('tecscale', [tecscale], {
             'long_name': 'TEC scaling factor',
             'description': 'Scaling factor applied to the electron density to match the TEC. 1.0 means no scaling.',
@@ -762,6 +806,7 @@ class GlowModel(Singleton):
             - `ValueError`: `ion_n` and `ion_n2` must be specified for `kchem = 2`.
             - `ValueError`: `Invalid dimensions for ion density profiles`.
         """
+        print(f'Running radiative transfer...{os.getpid()}')
         if not self._atm:
             raise RuntimeError('Atmosphere not evaluated. Run `atmosphere` (and `precipitation` if needed) first.')
         cglow.xuvfac = xuvfac
@@ -772,9 +817,9 @@ class GlowModel(Singleton):
         kchemsrc = {
             'N+': 'Custom',
             'N2+': 'Custom',
-            'O+': 'IRI-90',
-            'O2+': 'IRI-90',
-            'NO+': 'IRI-90',
+            'O+': 'IRI',
+            'O2+': 'IRI',
+            'NO+': 'IRI',
         }
 
         if kchem < 0 or kchem > 4:
@@ -1019,6 +1064,7 @@ class GlowModel(Singleton):
         ### Returns:
             - `xarray.Dataset`: GLOW model output dataset.
         """
+        print(f'Evaluating GlowModel.evaluate()...{os.getpid()}')
         self.atmosphere(density_perturbation, tec, version=version, settings=settings)
         self.radtrans(xuvfac, jlocal, kchem, ion_n=ion_n, ion_n2=ion_n2, ion_o=ion_o, ion_o2=ion_o2, ion_no=ion_no)
         return self.result()
@@ -1040,6 +1086,7 @@ class GlowModel(Singleton):
             - `RuntimeError`: GLOW model not initialized.
             - `RuntimeError`: GLOW model not evaluated, in case a deep copy is requested without evaluation.
         """
+        print(f'Getting GlowModel result...{os.getpid()}')
         if not self._initd:
             raise RuntimeError('GLOW model not initialized')
         if not self._evaluated and copy:
@@ -1090,6 +1137,7 @@ class GlowModel(Singleton):
         ### Returns:
             - `xarray.Dataset`: GLOW model output dataset.
         """
+        print(f'Running GlowModel.__call__()...{os.getpid()}')
         return self.evaluate(xuvfac, jlocal, kchem, density_perturbation=density_perturbation, tec=tec, ion_n=ion_n, ion_n2=ion_n2, ion_o=ion_o, ion_o2=ion_o2, ion_no=ion_no, version=version, settings=settings)
 
 
@@ -1176,6 +1224,7 @@ def generic(time: datetime,
     ### Returns:
         - `xarray.Dataset`: GLOW model output dataset.
     """
+    print(f'Running generic GLOW model...{os.getpid()}')
     mod = GlowModel()  # Get an instance of the GLOW model
     mod.initialize(jmax, nbins, sflux)
     mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware, magmodel=magmodel)

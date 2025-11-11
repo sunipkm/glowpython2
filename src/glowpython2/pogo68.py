@@ -14,7 +14,7 @@ class Pogo68(Singleton):
         # Initialize IGRF model parameters
         pass
     
-    def dipangle(self, time: Numeric, lat: Numeric, lon: Numeric, alt: Numeric | np.ndarray) -> Numeric | np.ndarray:
+    def dipangle(self, time: Numeric, lat: Numeric, lon: Numeric, alt: Numeric | np.ndarray) -> float | np.ndarray:
         """Calculate magnetic dip angle in degrees.
 
         Args:
