@@ -33,8 +33,9 @@ glat = 42.6
 glon = -71.2
 Nbins = 250
 tec = None
-versions = ['MSIS00_IRI90']
+versions = ['GLOW', 'MSIS00_IRI90', 'MSIS21_IRI20']
 lstyles = ['-', '--', '-.']
+alphas = [0.5, 0.7, 0.5]
 biglabels = ['GLOW', 'MSIS-2000 + IRI-1990', 'MSIS-2.1 + IRI-2020']
 ionos = {}
 for version in versions:
@@ -55,21 +56,21 @@ descs = {
     "O": "O", "O2": "O$_2$", "N2": "N$_2$", "NO": "NO",
     "O+": "O$^+$", "O2+": "O$_2^+$", "NO+": "NO$^+$", "N(2D)": "N($^2$D)", 'NeIn': 'e$^-$'
 }
-for version, linestyle in zip(versions, lstyles):
+for version, linestyle, alpha in zip(versions, lstyles, alphas):
     iono = ionos[version]
     ax = den_axs[0]
     ax.set_prop_cycle(None)  # reset color cycle
     for v in ("O", "O2", "N2", "NO"):
-        l, = ax.plot(iono[v], iono[v].alt_km, label=f'{version} {v}', linestyle=linestyle, lw=0.75)
+        l, = ax.plot(iono[v], iono[v].alt_km, label=f'{version} {v}', linestyle=linestyle, lw=0.75, alpha=alpha)
         if v not in den_lines[0]:
             den_lines[0][v] = l
 
-for version, linestyle in zip(versions, lstyles):
+for version, linestyle, alpha in zip(versions, lstyles, alphas):
     iono = ionos[version]
     ax = den_axs[1]
     ax.set_prop_cycle(None)  # reset color cycle
     for v in ("O+", "O2+", "NO+", "N(2D)", 'NeIn'):
-        l, = ax.plot(iono[v], iono[v].alt_km, label=f'{version} {v}', linestyle=linestyle, lw=0.75)
+        l, = ax.plot(iono[v], iono[v].alt_km, label=f'{version} {v}', linestyle=linestyle, lw=0.75, alpha=alpha)
         if v not in den_lines[1]:
             den_lines[1][v] = l
 
@@ -96,8 +97,8 @@ for k, v in den_lines[1].items():
     lines.append(v)
     labels.append(descs.get(k))
 den_axs[1].legend(lines, labels, loc="best", fontsize='small')
-for lab, ls in zip(biglabels, lstyles):
-    legend_axs.plot([], [], label=lab, color='k', linestyle=ls)
+for lab, ls, alpha in zip(biglabels, lstyles, alphas):
+    legend_axs.plot([], [], label=lab, color='k', linestyle=ls, alpha=alpha)
 legend_axs.legend(loc='center', ncol=3, fontsize='small', mode='expand', frameon=False)
 den_figure.text(0.5, 0.04, "Number Density [cm$^{-3}$]", ha='center')
 den_figure.text(0.5, 0.9, time.astimezone(UTC).astimezone(pytz.timezone('US/Eastern')).isoformat(sep=' '), ha='center')
@@ -111,17 +112,17 @@ temp_ax = temp_figure.add_subplot(temp_grid[1, 0])
 temp_legend_ax = temp_figure.add_subplot(temp_grid[0, 0])
 temp_legend_ax.axis('off')
 temp_lines = {}
-for version, linestyle in zip(versions, lstyles):
+for version, linestyle, alpha in zip(versions, lstyles, alphas):
     iono = ionos[version]
     ax = temp_ax
     ax.set_prop_cycle(None)  # reset color cycle
-    l, = ax.plot(iono['Te'], iono['Te'].alt_km, label=f'{version} Te', linestyle=linestyle, lw=0.75)
+    l, = ax.plot(iono['Te'], iono['Te'].alt_km, label=f'{version} Te', linestyle=linestyle, lw=0.75, alpha=alpha)
     if 'Te' not in temp_lines:
         temp_lines['Te'] = l
-    l, = ax.plot(iono['Ti'], iono['Ti'].alt_km, label=f'{version} Ti', linestyle=linestyle, lw=0.75)
+    l, = ax.plot(iono['Ti'], iono['Ti'].alt_km, label=f'{version} Ti', linestyle=linestyle, lw=0.75, alpha=alpha)
     if 'Ti' not in temp_lines:
         temp_lines['Ti'] = l
-    l, = ax.plot(iono['Tn'], iono['Tn'].alt_km, label=f'{version} Tn', linestyle=linestyle, lw=0.75)
+    l, = ax.plot(iono['Tn'], iono['Tn'].alt_km, label=f'{version} Tn', linestyle=linestyle, lw=0.75, alpha=alpha)
     if 'Tn' not in temp_lines:
         temp_lines['Tn'] = l
 temp_ax.set_xlabel("Temperature [K]")
@@ -136,8 +137,8 @@ for k, v in temp_lines.items():
     lines.append(v)
     labels.append(f'${k}$')
 temp_ax.legend(lines, labels, loc="best")
-for lab, ls in zip(biglabels, lstyles):
-    temp_legend_ax.plot([], [], label=lab, color='k', linestyle=ls)
+for lab, ls, alpha in zip(biglabels, lstyles, alphas):
+    temp_legend_ax.plot([], [], label=lab, color='k', linestyle=ls, alpha=alpha)
 temp_legend_ax.legend(loc='center', ncol=3, fontsize='small', mode='expand', frameon=False)
 temp_figure.text(0.5, 0.9, time.astimezone(UTC).astimezone(pytz.timezone('US/Eastern')).isoformat(sep=' '), ha='center')
 temp_figure.savefig('no_precip_temperature_comparison.png', dpi=300)
@@ -162,12 +163,12 @@ ver_components = {
     'Infrared': ["7320", "7774", "8446", "10400"],
     'Ultraviolet': ["1304", "1356", "1493", "3371", "3644", "3726", "LBH"]
 }
-for version, linestyle in zip(versions, lstyles):
+for version, linestyle, alpha in zip(versions, lstyles, alphas):
     iono = ionos[version]
     for ax, kind in zip(ver_axs, ('Visible', 'Infrared', 'Ultraviolet')):
         ax.set_prop_cycle(None)  # reset color cycle
         for line in ver_components[kind]:
-            l, = ax.plot(iono['ver'].sel(wavelength=line), iono['ver'].alt_km, label=f'{version} {line} Å', linestyle=linestyle, lw=0.75)
+            l, = ax.plot(iono['ver'].sel(wavelength=line), iono['ver'].alt_km, label=f'{version} {line} Å', linestyle=linestyle, lw=0.75, alpha=alpha)
             if line not in ver_lines[kind]:
                 ver_lines[kind][line] = l
 
@@ -191,8 +192,8 @@ for ax in ver_axs[1:]:
 ver_axs[0].set_ylabel("Altitude [km]")
 ver_figure.text(0.5, 0.04, "Volume Emission Rate [cm$^{-3}$ s$^{-1}$]", ha='center')
 ver_figure.text(0.5, 0.9, time.astimezone(UTC).astimezone(pytz.timezone('US/Eastern')).isoformat(sep=' '), ha='center')
-for lab, ls in zip(biglabels, lstyles):
-    ver_legend_ax.plot([], [], label=lab, color='k', linestyle=ls)
+for lab, ls, alpha in zip(biglabels, lstyles, alphas):
+    ver_legend_ax.plot([], [], label=lab, color='k', linestyle=ls, alpha=alpha)
 ver_legend_ax.legend(loc='center', ncol=3, fontsize='small', mode='expand', frameon=False)
 ver_figure.savefig('no_precip_ver_comparison.png', dpi=300)
 plt.show()
