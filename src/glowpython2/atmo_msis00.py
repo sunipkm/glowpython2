@@ -33,6 +33,7 @@ class Attribute:
 
 class NrlMsis00(Singleton):
     def _init(self, settings: Optional[Msis00Settings] = None):
+        print(f'Initializing MSIS00 model...{os.getpid()}')
         sett = settings or Msis00Settings()
         self.change_settings(sett)
         self._benchmark = False

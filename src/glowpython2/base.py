@@ -1,5 +1,6 @@
 from __future__ import annotations
 from os import path
+import os
 import pytz
 import geomagdata as gi
 from datetime import datetime, timedelta
@@ -141,6 +142,7 @@ class GlowModel(Singleton):
         not be called directly. Use the `GlowModel` class to get an instance.
         The creation of the first instance triggers this function.
         """
+        print(f'Creating GlowModel instance...{os.getpid()}')
         init_cglow()  # initialize the cglow module
         self._reset = True
         self._initd = False
