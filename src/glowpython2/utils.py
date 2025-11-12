@@ -5,10 +5,10 @@ from numpy import arctan, cumsum, float32, interp, isnan, linspace, ndarray, tan
 from datetime import datetime
 
 """
-GlowPython.utils
+glowpython2.utils
 ================
 
-This module provides utility functions for the GlowPython package.
+This module provides utility functions for the GlowPython2 package.
 """
 
 #: WGS84 ellipsoid major and minor axes.

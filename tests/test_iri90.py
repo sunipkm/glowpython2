@@ -47,18 +47,18 @@ descs = ['O^+', 'O_2^+', 'N^+', 'NO^+']
 colors = ['r', 'g', 'b', 'm']
 labels = []
 lines = []
-# for spec, color, desc in zip(species, colors, descs):
-#     l21, = ds20[spec].plot(y='alt_km', ax=ax, color=color)
-#     l00, = ds90[spec].plot(y='alt_km', ax=ax, linestyle='--', color=color)
-#     lines.extend([l21, l00])
-#     labels.extend([f'IRI-20 ${desc}$', f'IRI-90 ${desc}$'])
+for spec, color, desc in zip(species, colors, descs):
+    l21, = ds20[spec].plot(y='alt_km', ax=ax, color=color) # type: ignore
+    l00, = ds90[spec].plot(y='alt_km', ax=ax, linestyle='--', color=color) # type: ignore
+    lines.extend([l21, l00])
+    labels.extend([f'IRI-20 ${desc}$', f'IRI-90 ${desc}$'])
 ax.set_title('IRI-90 vs IRI-20')
-l21, = ds20['Te'].plot(y='alt_km', ax=tax, color='k')
-l00, = ds90['Te'].plot(y='alt_km', ax=tax, linestyle='--', color='k')
+l21, = ds20['Te'].plot(y='alt_km', ax=tax, color='k') # type: ignore
+l00, = ds90['Te'].plot(y='alt_km', ax=tax, linestyle='--', color='k') # type: ignore
 lines.extend([l21, l00])
 labels.extend(['IRI-20 $T_e$', 'IRI-90 $T_e$'])
-l21, = ds20['Ti'].plot(y='alt_km', ax=tax, color='c', alpha=0.7)
-l00, = ds90['Ti'].plot(y='alt_km', ax=tax, linestyle='--', color='c', alpha=0.7)
+l21, = ds20['Ti'].plot(y='alt_km', ax=tax, color='c', alpha=0.7) # type: ignore
+l00, = ds90['Ti'].plot(y='alt_km', ax=tax, linestyle='--', color='c', alpha=0.7) # type: ignore
 lines.extend([l21, l00])
 labels.extend(['IRI-20 $T_i$', 'IRI-90 $T_i$'])
 ax.set_title('IRI-21 vs IRI-90')

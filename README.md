@@ -1,6 +1,6 @@
 # GlowPython
 
-The FORTRAN GLobal airglOW ([GLOW](https://github.com/NCAR/GLOW)) Model in Python &ge; 3.7.
+The FORTRAN GLobal airglOW ([GLOW](https://github.com/NCAR/GLOW)) Model in Python &ge; 3.9.
 
 A Fortran compiler is **REQUIRED**.
 
@@ -20,46 +20,70 @@ into the following fundamental steps:
 
 <b>Note:</b> Between the `atmosphere` and `radtrans` steps, the intermediate dataset can be accessed using the `result` method by passing `copy=False`. This returns a reference to the internal dataset. Modifying the dataset in place allows for modifying the atmosphere and ionosphere presented to the `radtrans` step.
 
-## Installation
-
+## Prerequisites
+A Fortran compiler is **REQUIRED**.
+### Linux
+Ensure that you have the following development packages installed:
+- `build-essential` (for `gcc`, `g++`, `make`, etc.)
+- `gfortran` (Fortran compiler)
+### macOS
+Ensure that you have the Xcode Command Line Tools installed. You can install them by running:
+```sh
+xcode-select --install
+```
+Install [`homebrew`](https://brew.sh/) if you haven't already, and then install `gfortran`:
+```sh
+brew install gfortran
+```
 <b>Note:</b> For macOS Big Sur and above, you may need to add the following line to your environment script (`~/.zshrc` if using ZSH, or the relevant shell init script):
 ```sh
 export LIBRARY_PATH="$LIBRARY_PATH:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib"
 ```
-Then reopen the terminal. This fixes the issue where `-lSystem` fails for `gfortran`. Additionally,
-installation of `gfortran` using `homebrew` is required.
-
+Then reopen the terminal. This fixes the issue where `-lSystem` fails for `gfortran`. 
+### Windows
+The Windows installation is not officially supported at this time. However, you can try installing the [MinGW-w64](http://mingw-w64.org/doku.php) toolchain and ensure that `gfortran` is available in your system's PATH. You may also consider using the Windows Subsystem for Linux (WSL) to set up a Linux-like environment on your Windows machine.
+## Installation
 Direct installation using pip:
 ```sh
-$ pip install glowpython
+pip install glowpython2
 ```
 
-Install from source repository by:
-
+Install from source repository:
 ```sh
-$ git clone https://github.com/sunipkm/glowpython -b development
-$ cd glowpython && pip install .
+pip install glowpython2@git+https://github.com/sunipkm/glowpython2
 ```
 
 Requires (and installs) [geomagdata](https://pypi.org/project/geomagdata/) for timezone aware geomagnetic parameter retrieval.
+## Usage
+### Pre-defined examples
 
-Then use examples such as:
+* [`Maxwellian.py`](Examples/Maxwellian.py): Maxwellian precipitation, specify Q (flux) and E0 (characteristic energy).
+* [`NoPrecipitation.py`](Examples/NoPrecipitation.py): No precipitating electrons.
+* [`test_glow.py`](tests/test_glow.py): Compares GLOW results between `glowpython` and `glowpython2` modules without precipitation, as well as with NRLMSISE-2.1 atmosphere and IRI-2020 ionosphere.
 
-* `Examples/Maxwellian.py`: Maxwellian precipitation, specify Q (flux) and E0 (characteristic energy).
-* `Examples/NoPrecipitation.py`: No precipitating electrons.
+These examples are also available on the command line: `Glow2Maxwellian` and `Glow2NoPrecip`.
 
-These examples are also available on the command line: `GlowMaxwellian` and `GlowNoPrecip`.
-
-Or, use GLOW in your own Python program by:
+### Using `glowpython2` module
+In Python source code, import the module and call the `maxwellian` function:
 ```python
-import glowpython as glow
+import glowpython2 as glow
 
 iono = glow.maxwellian(time, glat, glon, Nbins, Q, Echar)
 ```
 
 Read the module documentation for more information.
 
-`iono` is a
+### Example Plots
+| Densities | Temperatures |
+| :---: | :---: |
+| ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` densities with no precipitation.](tests/glow_den.png) | ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` temperatures with no precipitation.](tests/glow_temp.png) |
+
+| Volume Emission Rates |
+| :---: |
+| ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` volume emission rates with no precipitation.](tests/glow_ver.png) |
+
+### Model Output
+The returned output is a
 [xarray.Dataset](http://xarray.pydata.org/en/stable/generated/xarray.Dataset.html)
 containing outputs from GLOW:
 - Coordinates:
@@ -120,10 +144,17 @@ containing outputs from GLOW:
 
 All available keys carry unit and description.
 
-## Development Path
-This repository started its life as a fork of the [NCAR-GLOW](https://github.com/space-physics/NCAR-GLOW) model to upgrade from [geomagindices](https://github.com/space-physics/geomagindices) that does not provide flux and Ap data post-SWPC.
-The [NCAR-GLOW](https://github.com/space-physics/NCAR-GLOW) implementation runs the GLOW model as a separate process, invoked from a compiled GLOW binary, and runtime parameters are passed to this binary over `STDIN` and `STDOUT` is parsed to produce the [`Dataset`](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html) containing the results of the simulation.
-This context switching, and text data parsing adds significant runtime overhead, and loss of precision.
-Starting v3.0.0, the core of [`glowpython`](https://github.com/sunipkm/glowpython) was changed to use F2PY, and pass inputs and get outputs from the FORTRAN library directly.
-Apart from the public-facing API (`no_precipitation`, `maxwellian`), the internal implementation of this repository is completely independent from NCAR-GLOW.
-
+# Citation
+If you use this code in your work, please cite the repository:
+```bibtex
+@software{sunipkm_glowpython2_2025,
+  author       = {Sunip K. Mukherjee},
+  title        = {{glowpython2}: A Python Wrapper for the GLOW Model},
+  month        = nov,
+  year         = 2025,
+  publisher    = {GitHub},
+  version      = {v0.0.1},
+  doi          = {https://zenodo.org/badge/latestdoi/1026267765},
+  url          = {https://github.com/sunipkm/glowpython2},
+}
+```

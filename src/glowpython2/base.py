@@ -12,8 +12,10 @@ from .glowfort import cglow, cglow as cg, maxt, glow, pyconduct  # type: ignore
 from typing import Any, Dict, Iterable, Optional, Sequence, SupportsFloat as Numeric, Tuple, Literal
 import atexit
 import warnings
-from msis21py import NrlMsis21, Settings as Msis21Settings
-from iri20py import Iri2020, Settings as Iri20Settings
+from msis21py import NrlMsis21
+from msis21py.settings import Settings as Msis21Settings
+from iri20py import Iri2020
+from iri20py.settings import Settings as Iri20Settings
 from .atmo_msis00 import Msis00Settings, NrlMsis00
 from .atmo_iri90 import Iri90, Settings as Iri90Settings
 from .igrf import Igrf
@@ -111,7 +113,7 @@ class GlowModel(Singleton):
     multi-process environment.
 
     ### Example (single evaluation):
-    >>> from glowpython import GlowModel
+    >>> from glowpython2 import GlowModel
     >>> from datetime import datetime
     >>> mod = GlowModel()
     >>> mod.setup(datetime(2020, 1, 1, 0, 0), 65, 0) # setup the model
@@ -305,7 +307,8 @@ class GlowModel(Singleton):
                 - `f107p` (previous day F10.7), and
                 - `Ap` (the global 3 hour $a_p$ index). 
 
-                Must be present in this order for list or tuple, and use these keys for the dictionary. Defaults to None.
+                Must use these keys for the dictionary. Defaults to None.
+            - `magmodel (MagField, optional)`: Geomagnetic field model. Can be `'POGO68'` or `'IGRF14'`. Defaults to `'POGO68'` (`glowpython` behavior).
             - `tzaware (bool, optional)`: If time is time zone aware. If true, `time` is recast to 'UTC' using `time.astimezone(pytz.utc)`. Defaults to False.
 
         ### Raises:
@@ -511,13 +514,8 @@ class GlowModel(Singleton):
         version: AtmosphereKind = 'MSIS00_IRI90',
         settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
     ) -> None:
-        """## Evaluate the atmosphere
-        Uses the MSISE-00 and IRI-90 models to calculate the neutral and ion densities, and temperatures.
-
-        The following subroutines are called in order:
-         - `glowfort.gtd7`: Calculate the neutral atmosphere parameters.
-         - `glowfort.snoemint`: Obtain the NO profile using the Nitric Oxide Empirical Model (NOEM).
-         - `glowfort.iri90`: Calculate the ionosphere using the IRI-90 model.
+        """## Evaluate the atmosphere and ionosphere.
+        Uses the MSISE-00/IRI-90 models or MSISE-2.1/IRI-2020 to calculate the neutral and ion densities, and temperatures.
 
         ### Args:
             - `density_perturbation (Sequence, optional)`: Density perturbations of O, O2, N2, NO, N(4S), N(2D) and e-. 
@@ -532,9 +530,10 @@ class GlowModel(Singleton):
 
               The nearest spatio-temporal TEC value is used to scale the electron density. This 
               dataset format is compatible with the GPS TEC maps from the Madrigal database.
-            - `hmf2 (Numeric, optional)`: Height of the F2 peak (km). Defaults to None.
-            - `nmf2 (Numeric, optional)`: Density of the F2 peak (m^-3). Defaults to None.
-            - `f2_peak (IRISRC, optional)`: F2 peak model. Defaults to 'URSI'.
+            - `version (AtmosphereKind, optional)`: Atmosphere and ionosphere model version. Can be 'MSIS00_IRI90' or 'MSIS21_IRI20'. Defaults to 'MSIS00_IRI90' (`glowpython` behavior).
+            - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
+                - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
+                - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
 
         ### Raises:
             - `RuntimeError`: GLOW model not ready for evaluation. Run `setup` first.
@@ -1013,6 +1012,10 @@ class GlowModel(Singleton):
             - `ion_o (Iterable, optional)`: O+ density profile. If None, IRI-90 profile is used. Defaults to None.
             - `ion_o2 (Iterable, optional)`: O2+ density profile. If None, IRI-90 profile is used. Defaults to None.
             - `ion_no (Iterable, optional)`: NO+ density profile. If None, IRI-90 profile is used. Defaults to None.
+            - `version (AtmosphereKind, optional)`: Atmosphere and ionosphere model version. Can be 'MSIS00_IRI90' or 'MSIS21_IRI20'. Defaults to 'MSIS00_IRI90' (`glowpython` behavior).
+            - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
+                - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
+                - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
 
         ### Returns:
             - `xarray.Dataset`: GLOW model output dataset.
@@ -1084,6 +1087,10 @@ class GlowModel(Singleton):
             - `ion_o (Iterable, optional)`: O+ density profile. If None, IRI-90 profile is used. Defaults to None.
             - `ion_o2 (Iterable, optional)`: O2+ density profile. If None, IRI-90 profile is used. Defaults to None.
             - `ion_no (Iterable, optional)`: NO+ density profile. If None, IRI-90 profile is used. Defaults to None.
+            - `version (AtmosphereKind, optional)`: Atmosphere and ionosphere model version. Can be 'MSIS00_IRI90' or 'MSIS21_IRI20'. Defaults to 'MSIS00_IRI90' (`glowpython` behavior).
+            - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
+                - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
+                - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
 
         ### Returns:
             - `xarray.Dataset`: GLOW model output dataset.
@@ -1134,6 +1141,11 @@ def generic(time: datetime,
 
             Must be present in this order for list or tuple, and use these keys for the dictionary. Defaults to None.
         - `tzaware (bool, optional)`: If time is time zone aware. If true, `time` is recast to 'UTC' using `time.astimezone(pytz.utc)`. Defaults to False.
+        - `magmodel (MagField, optional)`: Geomagnetic field model. Can be `'POGO68'` or `'IGRF14'`. Defaults to `'POGO68'` (`glowpython` behavior).
+        - `version (AtmosphereKind, optional)`: Atmosphere and ionosphere model version. Can be `'MSIS00_IRI90'` or `'MSIS21_IRI20'`. Defaults to `'MSIS00_IRI90'` (`glowpython` behavior).
+        - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
+            - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
+            - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
         - `tec (Numeric | Dataset, optional)`: Total Electron Content (TEC) in TECU. Defaults to None. Used to scale IRI-90 derived electron density.
 
             If `Dataset`, must contain the following coordinates:
@@ -1146,9 +1158,6 @@ def generic(time: datetime,
             The nearest spatio-temporal TEC value is used to scale the electron density. This 
             dataset format is compatible with the GPS TEC maps from the Madrigal database.
 
-        - `hmf2 (Numeric, optional)`: Height of the F2 peak (km). Defaults to None.
-        - `nmf2 (Numeric, optional)`: Density of the F2 peak (m^-3). Defaults to None.
-        - `f2_peak (HmFSource, optional)`: F2 peak model. Defaults to 'URSI'.
         - `metadata (dict, optional)`: Metadata to be added to the output dataset. Defaults to None.
         - `jmax (int, optional)`: Maximum number of altitude levels. Defaults to 250.
         - `sflux (FluxSource | Tuple[Sequence, Sequence, Sequence], optional)`: Solar flux model. Defaults to EUVAC model. 
@@ -1222,6 +1231,11 @@ def maxwellian(
 
             Must be present in this order for list or tuple, and use these keys for the dictionary. Defaults to None.
         - `tzaware (bool, optional)`: If time is time zone aware. If true, `time` is recast to 'UTC' using `time.astimezone(pytz.utc)`. Defaults to False.
+        - `magmodel (MagField, optional)`: Geomagnetic field model. Can be `'POGO68'` or `'IGRF14'`. Defaults to `'POGO68'` (`glowpython` behavior).
+        - `version (AtmosphereKind, optional)`: Atmosphere and ionosphere model version. Can be `'MSIS00_IRI90'` or `'MSIS21_IRI20'`. Defaults to `'MSIS00_IRI90'` (`glowpython` behavior).
+        - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
+            - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
+            - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
         - `tec (Numeric | Dataset, optional)`: Total Electron Content (TEC) in TECU. Defaults to None. Used to scale IRI-90 derived electron density.
 
             If `Dataset`, must contain the following coordinates:
@@ -1233,9 +1247,6 @@ def maxwellian(
 
             The nearest spatio-temporal TEC value is used to scale the electron density. This
             dataset format is compatible with the GPS TEC maps from the Madrigal database.
-        - `hmf2 (Numeric, optional)`: Height of the F2 peak (km). Defaults to None.
-        - `nmf2 (Numeric, optional)`: Density of the F2 peak (m^-3). Defaults to None.
-        - `f2_peak (IRISRC, optional)`: F2 peak model. Defaults to 'URSI'.
         - `metadata (dict, optional)`: Metadata to be added to the output dataset. Defaults to None.
 
     ### Raises:
@@ -1289,6 +1300,11 @@ def no_precipitation(
 
             Must be present in this order for list or tuple, and use these keys for the dictionary. Defaults to None.
         - `tzaware (bool, optional)`: If time is time zone aware. If true, `time` is recast to 'UTC' using `time.astimezone(pytz.utc)`. Defaults to False.
+        - `magmodel (MagField, optional)`: Geomagnetic field model. Can be `'POGO68'` or `'IGRF14'`. Defaults to `'POGO68'` (`glowpython` behavior).
+        - `version (AtmosphereKind, optional)`: Atmosphere and ionosphere model version. Can be `'MSIS00_IRI90'` or `'MSIS21_IRI20'`. Defaults to `'MSIS00_IRI90'` (`glowpython` behavior).
+        - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
+            - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
+            - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
         - `tec (Numeric | Dataset, optional)`: Total Electron Content (TEC) in TECU. Defaults to None. Used to scale IRI-90 derived electron density.
 
             If `Dataset`, must contain the following coordinates:
@@ -1300,9 +1316,6 @@ def no_precipitation(
 
             The nearest spatio-temporal TEC value is used to scale the electron density. This
             dataset format is compatible with the GPS TEC maps from the Madrigal database.
-        - `hmf2 (Numeric, optional)`: Height of the F2 peak (km). Defaults to None.
-        - `nmf2 (Numeric, optional)`: Density of the F2 peak (m^-3). Defaults to None.
-        - `f2_peak (IRISRC, optional)`: F2 peak model. Defaults to 'URSI'.
         - `metadata (dict, optional)`: Metadata to be added to the output dataset. Defaults to None.
 
     ### Raises:
@@ -1361,6 +1374,11 @@ def monoenergetic(
 
             Must be present in this order for list or tuple, and use these keys for the dictionary. Defaults to None.
         - `tzaware (bool, optional)`: If time is time zone aware. If true, `time` is recast to 'UTC' using `time.astimezone(pytz.utc)`. Defaults to False.
+        - `magmodel (MagField, optional)`: Geomagnetic field model. Can be `'POGO68'` or `'IGRF14'`. Defaults to `'POGO68'` (`glowpython` behavior).
+        - `version (AtmosphereKind, optional)`: Atmosphere and ionosphere model version. Can be `'MSIS00_IRI90'` or `'MSIS21_IRI20'`. Defaults to `'MSIS00_IRI90'` (`glowpython` behavior).
+        - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
+            - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
+            - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
         - `tec (Numeric | Dataset, optional)`: Total Electron Content (TEC) in TECU. Defaults to None. Used to scale IRI-90 derived electron density.
 
             If `Dataset`, must contain the following coordinates:
@@ -1372,9 +1390,6 @@ def monoenergetic(
 
             The nearest spatio-temporal TEC value is used to scale the electron density. This
             dataset format is compatible with the GPS TEC maps from the Madrigal database.
-        - `hmf2 (Numeric, optional)`: Height of the F2 peak (km). Defaults to None.
-        - `nmf2 (Numeric, optional)`: Density of the F2 peak (m^-3). Defaults to None.
-        - `f2_peak (IRISRC, optional)`: F2 peak model. Defaults to 'URSI'.
         - `metadata (dict, optional)`: Metadata to be added to the output dataset. Defaults to None.
 
     ### Raises:

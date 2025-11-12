@@ -1,13 +1,9 @@
 # %%
-from datetime import datetime, UTC
-import json
-
+from datetime import UTC
 from matplotlib.gridspec import GridSpec
 import pytz
 from glowpython import no_precipitation as glownoprecip
 from glowpython2 import no_precipitation
-from glowpython2.plots import Plot
-from glowpython2.utils import alt_grid, interpolate_nan
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -28,7 +24,7 @@ matplotlib.rc(
 # rc('font',**{'family':'serif','serif':['Palatino']})
 matplotlib.rc('text', usetex=usetex)
 # %%
-time = datetime(2022, 3, 22, 18, 0) # parse('2015-3-13T10:00:00')
+time = parse('2022-3-22T18:00:00')
 glat = 42.6
 glon = -71.2
 Nbins = 250
@@ -102,7 +98,7 @@ for lab, ls, alpha in zip(biglabels, lstyles, alphas):
 legend_axs.legend(loc='center', ncol=3, fontsize='small', mode='expand', frameon=False)
 den_figure.text(0.5, 0.04, "Number Density [cm$^{-3}$]", ha='center')
 den_figure.text(0.5, 0.9, time.astimezone(UTC).astimezone(pytz.timezone('US/Eastern')).isoformat(sep=' '), ha='center')
-den_figure.savefig('no_precip_density_comparison.png', dpi=300)
+den_figure.savefig('glow_den.png', dpi=300, bbox_inches='tight')
 plt.show()
 # %%
 # Temperature plot
@@ -141,7 +137,7 @@ for lab, ls, alpha in zip(biglabels, lstyles, alphas):
     temp_legend_ax.plot([], [], label=lab, color='k', linestyle=ls, alpha=alpha)
 temp_legend_ax.legend(loc='center', ncol=3, fontsize='small', mode='expand', frameon=False)
 temp_figure.text(0.5, 0.9, time.astimezone(UTC).astimezone(pytz.timezone('US/Eastern')).isoformat(sep=' '), ha='center')
-temp_figure.savefig('no_precip_temperature_comparison.png', dpi=300)
+temp_figure.savefig('glow_temp.png', dpi=300, bbox_inches='tight')
 plt.show()
 # %% VER plot
 ver_grid = GridSpec(2, 3, height_ratios=[0.05, 1], hspace=0.1, wspace=0.15)
@@ -195,7 +191,7 @@ ver_figure.text(0.5, 0.9, time.astimezone(UTC).astimezone(pytz.timezone('US/East
 for lab, ls, alpha in zip(biglabels, lstyles, alphas):
     ver_legend_ax.plot([], [], label=lab, color='k', linestyle=ls, alpha=alpha)
 ver_legend_ax.legend(loc='center', ncol=3, fontsize='small', mode='expand', frameon=False)
-ver_figure.savefig('no_precip_ver_comparison.png', dpi=300)
+ver_figure.savefig('glow_ver.png', dpi=300, bbox_inches='tight')
 plt.show()
 
 # %%

@@ -3,7 +3,7 @@
 Maxwellian shaped particle precipitation differential number flux
 """
 import glowpython2 as glow
-import glowpython2.plots as plot
+from glowpython2.plots import Plot 
 from datetime import datetime
 from matplotlib.pyplot import show
 
@@ -20,6 +20,7 @@ Nbins = 250
 
 iono = glow.maxwellian(time, glat, glon, Nbins, Q, Echar)
 # %% plots
+plot = Plot()
 plot.precip(iono["precip"])
 plot.ver(iono)
 plot.density(iono)

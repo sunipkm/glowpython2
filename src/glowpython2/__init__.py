@@ -1,8 +1,8 @@
 """
-GlowPython
+GlowPython2
 ==========
 
-GlowPython is a Python package for evaluating the Global Airglow (GLOW) model.
+GlowPython2 is a Python package for evaluating the Global Airglow (GLOW) model.
 The FORTRAN backend of the GLOW model is NOT thread-safe. This package provides
 a singleton class to ensure that only one instance of the GLOW model is used at
 a time. It is recommended to only use **ONE** instance of the `GlowModel` class
@@ -19,12 +19,12 @@ Provides
 
 Usage:
     1. Class based usage:
-        >>> from glowpython import GlowModel
+        >>> from glowpython2 import GlowModel
         >>> glow = GlowModel() # Get an instance of the GLOW model
         >>> glow.setup(time, lat, lon) # Setup the GLOW model for a given time and location
         >>> ds = glow() # Evaluate the GLOW model and get the dataset```
     2. Function based usage:
-        >>> from glowpython import no_precipitation
+        >>> from glowpython2 import no_precipitation
         >>> ds = no_precipitation(time, lat, lon) # Evaluate the GLOW model and get the dataset
     3. Advanced scenarios:
         The user can inherit from the `GlowModel` class and insert custom hooks to
@@ -100,7 +100,8 @@ Output Dataset:
 """
 from .base import GlowModel, \
     generic, no_precipitation, maxwellian, monoenergetic, \
-    FluxSource, Msis21Settings, Iri20Settings
+    FluxSource, Msis21Settings, Iri20Settings, MagField, \
+    AtmosphereKind
 from .atmo_msis00 import Msis00Settings, NrlMsis00
 from .atmo_iri90 import Settings as Iri90Settings, ComputedSettings as Iri90ComputedSettings, Iri90
 from . import utils
@@ -110,6 +111,7 @@ from .version import __version__
 __all__ = [
     'Msis00Settings', 'NrlMsis00',
     'Iri90Settings', 'Iri90ComputedSettings', 'Iri90',
+    'MagField', 'AtmosphereKind',
     'GlowModel', 'generic', 'no_precipitation', 'maxwellian',
     'monoenergetic', 'FluxSource', 'Msis21Settings', 'Iri20Settings',
     'utils', 'Plot',

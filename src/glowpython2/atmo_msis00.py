@@ -7,7 +7,7 @@ from typing import Any, Optional, Dict, Tuple, Sequence, SupportsFloat as Numeri
 from dataclasses import dataclass
 import numpy as np
 from xarray import Dataset
-from msis21py import Settings as Msis00Settings, ComputedSettings as Msis00ComputedSettings
+from msis21py.settings import Settings as Msis00Settings, ComputedSettings as Msis00ComputedSettings
 import geomagdata as gi
 
 from .version import __version__

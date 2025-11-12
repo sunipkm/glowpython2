@@ -1,1 +1,3 @@
 graft src/GLOW/data
+graft src/ATMO/data
+graft src/IGRF/data
