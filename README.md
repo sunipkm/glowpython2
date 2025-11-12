@@ -57,9 +57,9 @@ Requires (and installs) [geomagdata](https://pypi.org/project/geomagdata/) for t
 ## Usage
 ### Pre-defined examples
 
-* [`Maxwellian.py`](Examples/Maxwellian.py): Maxwellian precipitation, specify Q (flux) and E0 (characteristic energy).
-* [`NoPrecipitation.py`](Examples/NoPrecipitation.py): No precipitating electrons.
-* [`test_glow.py`](tests/test_glow.py): Compares GLOW results between `glowpython` and `glowpython2` modules without precipitation, as well as with NRLMSISE-2.1 atmosphere and IRI-2020 ionosphere.
+* [`Maxwellian.py`](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/Examples/Maxwellian.py): Maxwellian precipitation, specify Q (flux) and E0 (characteristic energy).
+* [`NoPrecipitation.py`](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/Examples/NoPrecipitation.py): No precipitating electrons.
+* [`test_glow.py`](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/test_glow.py): Compares GLOW results between `glowpython` and `glowpython2` modules without precipitation, as well as with NRLMSISE-2.1 atmosphere and IRI-2020 ionosphere.
 
 These examples are also available on the command line: `Glow2Maxwellian` and `Glow2NoPrecip`.
 
@@ -76,11 +76,11 @@ Read the module documentation for more information.
 ### Example Plots
 | Densities | Temperatures |
 | :---: | :---: |
-| ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` densities with no precipitation.](tests/glow_den.png) | ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` temperatures with no precipitation.](tests/glow_temp.png) |
+| ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` densities with no precipitation.](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/glow_den.png) | ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` temperatures with no precipitation.](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/glow_temp.png) |
 
 | Volume Emission Rates |
 | :---: |
-| ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` volume emission rates with no precipitation.](tests/glow_ver.png) |
+| ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` volume emission rates with no precipitation.](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/glow_ver.png) |
 
 ### Model Output
 The returned output is a
