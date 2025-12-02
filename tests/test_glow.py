@@ -24,19 +24,25 @@ matplotlib.rc(
 # rc('font',**{'family':'serif','serif':['Palatino']})
 matplotlib.rc('text', usetex=usetex)
 # %%
-time = parse('2022-3-22T18:00:00')
+time = parse('2022-3-22T22:00:00')
 glat = 42.6
 glon = -71.2
 Nbins = 250
 tec = None
-versions = ['GLOW', 'MSIS00_IRI90', 'MSIS21_IRI20']
+versions = ['MSIS00_IRI90', 'MSIS21_IRI20', 'MODGLOW']
+biglabels = ['MSIS-2000 + IRI-1990', 'MSIS-2.1 + IRI-2020', 'MSIS-2.1 + IRI-2020 + ModGLOW']
 lstyles = ['-', '--', '-.']
 alphas = [0.5, 0.7, 0.5]
-biglabels = ['GLOW', 'MSIS-2000 + IRI-1990', 'MSIS-2.1 + IRI-2020']
 ionos = {}
 for version in versions:
     if version == 'GLOW':
         iono = glownoprecip(time, glat, glon, Nbins)
+    elif version == 'MODGLOW':
+        iono = no_precipitation(
+            time, glat, glon, Nbins, tec=tec,
+            version='MSIS21_IRI20', magmodel='IGRF14',
+            newcoeffs=True
+        )
     else:
         magmodel = 'IGRF14' if version == 'MSIS21_IRI20' else 'POGO68'
         iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version, magmodel=magmodel)  # type: ignore
@@ -164,7 +170,8 @@ for version, linestyle, alpha in zip(versions, lstyles, alphas):
     for ax, kind in zip(ver_axs, ('Visible', 'Infrared', 'Ultraviolet')):
         ax.set_prop_cycle(None)  # reset color cycle
         for line in ver_components[kind]:
-            l, = ax.plot(iono['ver'].sel(wavelength=line), iono['ver'].alt_km, label=f'{version} {line} Å', linestyle=linestyle, lw=0.75, alpha=alpha)
+            l, = ax.plot(iono['ver'].sel(wavelength=line), iono['ver'].alt_km,
+                         label=f'{version} {line} Å', linestyle=linestyle, lw=0.75, alpha=alpha)
             if line not in ver_lines[kind]:
                 ver_lines[kind][line] = l
 
@@ -194,4 +201,25 @@ ver_legend_ax.legend(loc='center', ncol=3, fontsize='small', mode='expand', fram
 ver_figure.savefig('glow_ver.png', dpi=300, bbox_inches='tight')
 plt.show()
 
+# %%
+iono = ionos['MSIS00_IRI90']
+ver_above = iono['ver'].sel(alt_km=slice(300, None))
+ver_below = iono['ver'].sel(alt_km=slice(None, 300))
+alt_above = ver_above.alt_km.values
+alt_below = ver_below.alt_km.values
+# nan filter
+loc = np.where(np.isnan(ver_above.values))
+ver_above.values[loc] = 0.0
+loc = np.where(np.isnan(ver_below.values))
+ver_below.values[loc] = 0.0
+# ver_above_integrated = np.trapezoid(ver_above.values, x=(alt_above*1e2), axis=0)
+# ver_below_integrated = np.trapezoid(ver_below.values, x=(alt_below*1e2), axis=0)
+ver_above = ver_above.integrate(coord='alt_km')
+# ver_above.values = ver_above_integrated
+ver_below = ver_below.integrate(coord='alt_km')
+# ver_below.values = ver_below_integrated
+for wavelength in ['5577', '6300']:
+    print(f'Wavelength: {wavelength} Å')
+    print(f'  VER above 300 km: {ver_above.sel(wavelength=wavelength).values:.3e} cm^-2 s^-1')
+    print(f'  VER below 300 km: {ver_below.sel(wavelength=wavelength).values:.3e} cm^-2 s^-1')
 # %%

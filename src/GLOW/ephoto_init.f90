@@ -68,7 +68,7 @@
 
 subroutine ephoto_init
 
-  use cglow,only: nbins,lmax,nmaj,nst
+  use cglow,only: lmax,nmaj,nst
   use cglow,only: wave1,wave2,epsil1,epsil2,sigion,sigabs,ephoto_prob
   use cglow,only: data_dir
 

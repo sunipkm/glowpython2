@@ -132,10 +132,10 @@ subroutine glow
 
    use cglow,only: jmax,lmax,nw,nst,nmaj,nbins,iscale,nei,ierr, &
       glat,glong,idate,ut,f107,f107a, &
-      ener,edel,sza,xuvfac, &
-      wave1,wave2,sflux,zmaj,zo,zo2,zn2,zz,ztn,zcol, &
+      sza,xuvfac, &
+      sflux,zmaj,zo,zo2,zn2,zz,ztn,zcol, &
       photoi,photod, phono,pespec,pia,sespec,phitop, &
-      uflx,dflx,sion,aglw,eheat,tez, efrac,zno
+      uflx,dflx,sion,aglw,eheat,tez, efrac,zno,modglow
 
    implicit none
 
@@ -226,7 +226,11 @@ subroutine glow
 ! ionized consituents, airglow emission rates, and vertical column
 ! brightnesses:
 
-   call gchem
+   if (modglow) then
+      call gchem_modglow
+   else
+      call gchem
+   endif
 
 ! Call subroutine BANDS to calculate band-specific airglow emission
 ! rates (currently only LBH upper state distribution):

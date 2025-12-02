@@ -83,7 +83,7 @@ subroutine ephoto
             rion(lmax,nmaj,jmax)
 
   real,parameter :: signo = 2.0e-18
-  integer :: l,n,k,i,j,m,m1,m2
+  integer :: l,n,k,i,j,m1,m2
   real :: fac,e1,e2,y,r1,r2
 
   nnn = (/5,4,6/)

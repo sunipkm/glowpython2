@@ -44,6 +44,7 @@ py.install_sources(
     'src/glowpython2/atmo_msis00.py',
     'src/glowpython2/igrf.py',
     'src/glowpython2/pogo68.py',
+    'src/glowpython2/coeffs.py',
     'src/glowpython2/base.py',
     'src/glowpython2/utils.py',
     'src/glowpython2/version.py',
@@ -85,12 +86,14 @@ glow_fort_srcs = [
   'src/GLOW/etrans.f90', 
   'src/GLOW/exsect.f90',
   'src/GLOW/gchem.f90',
+  'src/GLOW/gchem_modglow.f90',
   'src/GLOW/maxt.f90', 
   'src/GLOW/qback.f90', 
   'src/GLOW/rcolum.f90',
   'src/GLOW/solzen.f90', 
   'src/GLOW/ssflux_init.f90', 
   'src/GLOW/ssflux.f90',
+  'src/GLOW/vquart.f90',
 ]
 
 # GLOW Fortran F2PY wrapper

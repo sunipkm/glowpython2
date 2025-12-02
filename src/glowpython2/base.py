@@ -7,6 +7,8 @@ from numpy import allclose, array, asarray, float32, full, isnan, ndarray, ones,
 import numpy as np
 from xarray import Dataset, Variable
 import xarray
+
+from .coeffs import CLASSIC_ACOEFF, CLASSIC_BCOEFF, MODGLOW_ACOEFF, MODGLOW_BCOEFF
 from .utils import Singleton, alt_grid, decimal_year, glowdate, geocent_to_geodet, interpolate_nan
 from .glowfort import cglow, cglow as cg, maxt, glow, pyconduct  # type: ignore
 from typing import Any, Dict, Iterable, Optional, Sequence, SupportsFloat as Numeric, Tuple, Literal
@@ -57,6 +59,9 @@ def init_cglow() -> None:
     cglow.cglow_static_init()
     cglow.jmax = 0
     cglow.nbins = 0
+    cglow.modglow = False  # initialize in classic mode
+    cglow.acoeff = CLASSIC_ACOEFF
+    cglow.bcoeff = CLASSIC_BCOEFF
 
 
 @atexit.register
@@ -154,10 +159,12 @@ class GlowModel(Singleton):
         self._lon = np.nan
         self._dyear = np.nan
         self._magmodel = 'POGO68'
+        self._newcoeffs = False
 
     def initialize(
         self,
         alt_km: int | Sequence = 250, nbins: int = 100,
+        new_coeffs: bool = False,
         sflux: FluxSource | Tuple[Sequence, Sequence, Sequence] = 'EUVAC'
     ) -> None:
         """## Initialize Inputs
@@ -169,6 +176,7 @@ class GlowModel(Singleton):
                 - `int`: Length of altitude grid. The altitude grid is then evaluated using the `alt_grid` function.
                 - `Iterable`: Custom altitude grid. Must be a 1-D array, and between 60 and 1000 km.
             - `nbins (int, optional)`: Number of energy bins. Defaults to 100.
+            - `new_coeffs (bool, optional)`: Use ModGLOW coefficients if True, CLASSIC coefficients if False. Defaults to False.
             - `sflux (FluxSource | Tuple[Sequence, Sequence, Sequence], optional)`: Solar flux model. Defaults to EUVAC model. 
                 - `FluxSource`: Solar flux model. Can be 'Hinteregger' or 'EUVAC'.
                 - `Tuple[Sequence, Sequence, Sequence]`: Custom solar flux model. The first sequence is the starting points of the solar flux wavelength bins, 
@@ -192,6 +200,16 @@ class GlowModel(Singleton):
         if not self._reset:
             raise RuntimeError('Reset the model before initializing')
         # deal with altitude grid
+        if self._newcoeffs != new_coeffs:
+            self._newcoeffs = new_coeffs
+            if new_coeffs:
+                cglow.modglow = True
+                cglow.acoeff = MODGLOW_ACOEFF
+                cglow.bcoeff = MODGLOW_BCOEFF
+            else:
+                cglow.modglow = False
+                cglow.acoeff = CLASSIC_ACOEFF
+                cglow.bcoeff = CLASSIC_BCOEFF
         if alt_km is None:
             if cglow.jmax == 0:
                 raise ValueError('alt_km must be specified if not already initialized')
@@ -618,9 +636,12 @@ class GlowModel(Singleton):
         cg.zti[:] = ds_iri['Ti'].values.clip(min=0).astype(float32, order='F')
         cg.zte[:] = ds_iri['Te'].values.clip(min=0).astype(float32, order='F')
         cg.ze[:] = ds_iri['Ne'].values.clip(min=0).astype(float32, order='F')
-        cg.zxden[2,:] = ds_iri['O+'].values.clip(min=0).astype(float32, order='F')
-        cg.zxden[5,:] = ds_iri['O2+'].values.clip(min=0).astype(float32, order='F')
-        cg.zxden[6,:] = ds_iri['NO+'].values.clip(min=0).astype(float32, order='F')
+        # ZXDEN   array of excited and and/or ionized state densities at each altitude:
+        # O+(2P), O+(2D), O+(4S), N+, N2+, O2+, NO+, N2(A), N(2P),
+        # N(2D), O(1S), O(1D); cm-3
+        cg.zxden[2, :] = ds_iri['O+'].values.clip(min=0).astype(float32, order='F') # O+(4S)
+        cg.zxden[5, :] = ds_iri['O2+'].values.clip(min=0).astype(float32, order='F')
+        cg.zxden[6, :] = ds_iri['NO+'].values.clip(min=0).astype(float32, order='F')
 
         # Apply the density perturbations
         cg.zo *= dpart[0]
@@ -1111,6 +1132,7 @@ def generic(time: datetime,
             magmodel: MagField = 'POGO68',
             version: AtmosphereKind = 'MSIS00_IRI90',
             settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+            newcoeffs: bool = False,
             tec: Optional[Numeric | Dataset] = None,
             metadata: Optional[dict] = None,
             jmax: int = 250,
@@ -1146,6 +1168,7 @@ def generic(time: datetime,
         - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
             - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
             - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
+        - `newcoeffs (bool, optional)`: Use ModGLOW coefficients. Defaults to False. 
         - `tec (Numeric | Dataset, optional)`: Total Electron Content (TEC) in TECU. Defaults to None. Used to scale IRI-90 derived electron density.
 
             If `Dataset`, must contain the following coordinates:
@@ -1184,7 +1207,7 @@ def generic(time: datetime,
         - `xarray.Dataset`: GLOW model output dataset.
     """
     mod = GlowModel()  # Get an instance of the GLOW model
-    mod.initialize(jmax, nbins, sflux)
+    mod.initialize(jmax, nbins, newcoeffs, sflux)
     mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware, magmodel=magmodel)
     mod.precipitation(Q, Echar, itail=itail, fmono=fmono, emono=emono)
     ds = mod.evaluate(
@@ -1210,6 +1233,7 @@ def maxwellian(
     magmodel: MagField = 'POGO68',
     version: AtmosphereKind = 'MSIS00_IRI90',
     settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    newcoeffs: bool = False,
     metadata: Optional[dict] = None
 ) -> xarray.Dataset:
     """## GLOW model with electron precipitation assuming Maxwellian distribution.
@@ -1236,6 +1260,7 @@ def maxwellian(
         - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
             - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
             - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
+        - `newcoeffs (bool, optional)`: Use ModGLOW coefficients. Defaults to False.
         - `tec (Numeric | Dataset, optional)`: Total Electron Content (TEC) in TECU. Defaults to None. Used to scale IRI-90 derived electron density.
 
             If `Dataset`, must contain the following coordinates:
@@ -1260,7 +1285,7 @@ def maxwellian(
         alt_km = 250
     else:
         alt_km = None
-    mod.initialize(alt_km, Nbins)  # type: ignore
+    mod.initialize(alt_km, Nbins, newcoeffs)  # type: ignore
     mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware, magmodel=magmodel)
     mod.precipitation(Q, Echar)
     ds = mod(density_perturbation=density_perturbation, tec=tec, version=version, settings=settings)
@@ -1281,6 +1306,7 @@ def no_precipitation(
     magmodel: MagField = 'POGO68',
     version: AtmosphereKind = 'MSIS00_IRI90',
     settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    newcoeffs: bool = False,
     metadata: Optional[dict] = None
 ) -> xarray.Dataset:
     """## GLOW model with no electron precipitation.
@@ -1305,6 +1331,7 @@ def no_precipitation(
         - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
             - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
             - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
+        - `newcoeffs (bool, optional)`: Use ModGLOW coefficients. Defaults to False.
         - `tec (Numeric | Dataset, optional)`: Total Electron Content (TEC) in TECU. Defaults to None. Used to scale IRI-90 derived electron density.
 
             If `Dataset`, must contain the following coordinates:
@@ -1329,7 +1356,7 @@ def no_precipitation(
         alt_km = 250
     else:
         alt_km = None
-    mod.initialize(alt_km, Nbins)  # type: ignore
+    mod.initialize(alt_km, Nbins, newcoeffs)  # type: ignore
     mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware, magmodel=magmodel)
     ds = mod(density_perturbation=density_perturbation, tec=tec, version=version, settings=settings)
     _ = metadata
@@ -1352,6 +1379,7 @@ def monoenergetic(
     magmodel: MagField = 'POGO68',
     version: AtmosphereKind = 'MSIS00_IRI90',
     settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    newcoeffs: bool = False,
     metadata: Optional[dict] = None
 ) -> xarray.Dataset:
     """## GLOW model with monoenergetic precipitation.
@@ -1379,6 +1407,7 @@ def monoenergetic(
         - `settings (Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings], optional)`: Custom settings for the atmosphere and ionosphere models.
             - For `MSIS00_IRI90`, supply a tuple of (`Msis00Settings`, `Iri90Settings`).
             - For `MSIS21_IRI20`, supply a tuple of (`Msis21Settings`, `Iri20Settings`).
+        - `newcoeffs (bool, optional)`: Use ModGLOW coefficients. Defaults to False.
         - `tec (Numeric | Dataset, optional)`: Total Electron Content (TEC) in TECU. Defaults to None. Used to scale IRI-90 derived electron density.
 
             If `Dataset`, must contain the following coordinates:
@@ -1403,7 +1432,7 @@ def monoenergetic(
         alt_km = 250
     else:
         alt_km = None
-    mod.initialize(alt_km, Nbins)  # type: ignore
+    mod.initialize(alt_km, Nbins, newcoeffs)  # type: ignore
     mod.setup(time, glat, glon, geomag_params=geomag_params, tzaware=tzaware, magmodel=magmodel)
     mod.precipitation(0.001, emono/2., fmono=fmono, emono=emono, itail=itail)
     ds = mod(density_perturbation=density_perturbation, tec=tec, version=version, settings=settings)

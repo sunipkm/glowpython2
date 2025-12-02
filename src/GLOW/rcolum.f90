@@ -27,6 +27,7 @@
 !   ZZ     Altitude array; cm [jmax]
 !   ZMAJ   Major species number densities (O, O2, N2); cm-3 [nmaj,jmax]
 !   TN     Neutral temperature at each altitude; K [jmax]
+! Output:
 !   ZCOL   Slant column density (O, O2, N2); cm-2 [nmaj,jmax]
 !   ZVCD   Vertical column density (O, O2, N2) above each altitude (cumsum); cm-2 [nmaj,jmax]
 

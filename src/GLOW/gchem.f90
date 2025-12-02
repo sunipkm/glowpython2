@@ -192,7 +192,7 @@
 
   SUBROUTINE GCHEM
 !
-    use cglow,only: jmax, nbins, nmaj, nex, nw, nc, kchem, sza, &
+    use cglow,only: jmax, nmaj, nex, nw, nc, kchem, sza, &
                     zz, zo, zn2, zo2, zno, zns, znd, ze, ztn, zti, zte, &
                     photoi, photod, phono, pia, sion, aglw, &
                     tei, tpi, tir, e=>ecalc, den=>zxden, zeta, zceta, vcb, &
@@ -210,7 +210,7 @@
               QQ(JMAX), RR(JMAX), SS(JMAX), TT(JMAX), UU(JMAX), &
               VV(JMAX), WW(JMAX), XX(JMAX)
     real ::   gh,dz,tatomi,alphaef,toti
-    integer :: i,iw,ic,ix,n,j200,iter
+    integer :: i,iw,j200,iter
 !
     DATA A/ 1.07E-5, 0.00585, 0.00185, 0.0450, 1.0600, 9.7E-5, 0.0479, 0.1712, 0.0010, 0.7700, &
             0.00540, 0.07900,     0.0,    0.0,    0.0,     0.0,   0.0,    0.0,    0.0,    0.0, &

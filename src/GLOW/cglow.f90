@@ -68,11 +68,12 @@ module cglow
   integer,parameter :: nex=12    ! number of excited/ionized species
   integer,parameter :: nw=15     ! number of airglow emission wavelengths
   integer,parameter :: nc=10     ! number of component production terms for each emission
+  integer,parameter :: nr=100     ! number of rate coefficients, branching ratios, A and G factors
 
 ! Directory containing data files needed by glow subroutines:
 
   character(1024) :: data_dir
-
+  logical :: modglow
   integer :: idate,iscale,jlocal,kchem,ierr
   real    :: ut,glat,glong,f107,f107a,f107p,ap,ef,ec
   real    :: xuvfac, sza, efrac
@@ -102,6 +103,7 @@ module cglow
   integer,allocatable,dimension(:)  :: iimaxx                         ! (nbins)
   real,allocatable,dimension(:,:) :: &                                ! (nei,nmaj)
     ww,ao,omeg,anu,bb,auto,thi,ak,aj,ts,ta,tb,gams,gamb
+  real,allocatable,dimension(:)     :: acoeff, bcoeff                 ! (nr) 
 
   real(wp), allocatable, dimension(:,:) :: production, loss  ! gchem.f90
 
@@ -128,6 +130,8 @@ module cglow
       tb(nei,nmaj), &
       gams(nei,nmaj), &
       gamb(nei,nmaj), &
+      acoeff(nr), &
+      bcoeff(nr) &
     )
     endif
 
@@ -273,6 +277,7 @@ module cglow
     deallocate(wave1, wave2, sflux, sf_rflux, sf_scale1, sf_scale2)
     deallocate(epsil1, epsil2, ephoto_prob)
     deallocate(sigion, sigabs)
+    deallocate(acoeff, bcoeff)
   end subroutine cglow_static_deinit
 
   subroutine cglow_dynamic_alloc

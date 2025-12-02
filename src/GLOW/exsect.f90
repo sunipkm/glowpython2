@@ -63,7 +63,7 @@
 !
     real ::   SIGI(NBINS), T12(NBINS), RATIO(NBINS), &        
     EC(31,NMAJ), CC(31,NMAJ), CE(31,NMAJ), CI(31,NMAJ)
-    integer :: NNNI(NMAJ),NINN(NMAJ),NUM(NMAJ),NNN(NMAJ)
+    integer :: NINN(NMAJ),NUM(NMAJ),NNN(NMAJ)
     integer :: ij,iv,ii,i,k,j,i1,i2,i3,jy,kuk,kuk1,iee,kk,ie,ibz,ml, & 
     itmax
     real :: EX,FAC,WE,AE,GAMMA,T0,ETJ,DETJ,SIGG,ETA,FF,WAG,TMT, &

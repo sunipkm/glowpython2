@@ -24,7 +24,7 @@
 
 subroutine bands
 
-  use cglow, only: jmax, nc, aglw, zeta, zlbh
+  use cglow, only: jmax, nc, aglw, zlbh
 
   implicit none
 
