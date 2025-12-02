@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 project('glowpython2', 'c',
-  version : '1.0',
+  version : '0.0.2',
   license: 'BSD-3',
   meson_version: '>=0.64.0',
   default_options : ['warning_level=2'],
