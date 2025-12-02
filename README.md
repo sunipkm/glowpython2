@@ -85,7 +85,7 @@ Read the module documentation for more information.
 GlowPython2 has a few configuration options at runtime - 
 - Magnetic field model: Use `POGO68` for GLOW 0.98 behavior, `IGRF14` for the [IGRF-14](https://www.ncei.noaa.gov/products/international-geomagnetic-reference-field) model (extracted from [IRI-2020](https://irimodel.org/)).
 - Atmosphere and ionosphere model: Use `MSIS00_IRI90` for GLOW 0.98 behavior, `MSIS21_IRI20` for [NRLMSIS 2.1](https://map.nrl.navy.mil/map/pub/nrl/NRLMSIS/NRLMSIS2.1/) and [IRI-2020](https://irimodel.org/).
-- New coefficients from [ModGLOW implementation](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017JA025026#jgra54046-bib-0037): Set `newcoeffs` to `True`. This updates the reaction rates with data from newer publications.
+- New coefficients from [ModGLOW implementation](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017JA025026): Set `newcoeffs` to `True`. This updates the reaction rates with data from newer publications.
 ### Model Output
 The returned output is a
 [xarray.Dataset](http://xarray.pydata.org/en/stable/generated/xarray.Dataset.html)
