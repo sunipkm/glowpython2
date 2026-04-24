@@ -223,3 +223,15 @@ for wavelength in ['5577', '6300']:
     print(f'  VER above 300 km: {ver_above.sel(wavelength=wavelength).values:.3e} cm^-2 s^-1')
     print(f'  VER below 300 km: {ver_below.sel(wavelength=wavelength).values:.3e} cm^-2 s^-1')
 # %%
+vers = {}
+for key in ['MSIS00_IRI90', 'MODGLOW']:
+    iono = ionos[key]
+    ver = iono['ver']
+    loc = np.where(np.isnan(ver.values))
+    ver.values[loc] = 0.0
+    ver_integrated = ver.integrate(coord='alt_km')
+    vers[key] = ver_integrated
+
+for wavelength in ver_integrated.wavelength.values:
+    print(f'Wavelength: {wavelength} Å, Ratio MODGLOW / MSIS00_IRI90: {vers["MODGLOW"].sel(wavelength=wavelength).values / vers["MSIS00_IRI90"].sel(wavelength=wavelength).values:.3f}')
+# %%
