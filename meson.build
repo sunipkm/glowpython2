@@ -16,8 +16,8 @@ fs = import('fs')
 fc = meson.get_compiler('fortran')
 
 fortran_args = ['-cpp', '-march=native', '-ffast-math', '-std=legacy']
-if host_machine.system() == 'windows':
-  fortran_args += ['-DWIN32'] # Ensure WIN32 is defined for Windows builds to avoid missing symbol errors in MinGW runtimes.
+if host_machine.system() == 'windows'
+  fortran_args += ['-D_WIN32'] # Ensure _WIN32 is defined for Windows builds to avoid missing symbol errors in MinGW runtimes.
 endif
 
 # On Windows with MinGW gfortran, extension modules can fail to import if

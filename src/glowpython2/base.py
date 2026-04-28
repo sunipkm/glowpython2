@@ -712,9 +712,16 @@ class GlowModel(Singleton):
             'description': 'Scaling factor applied to the electron density to match the TEC. 1.0 means no scaling.',
         })
 
-        ds.coords['denperturb'] = ('denperturb', dpart, {
-            'long_name': 'Density Perturbation',
-            'description': 'Density perturbation applied to the atmospheric densities. 1.0 means no perturbation.',
+        ds.coords['scaled_species'] = ('scaled_species', 
+            ['O', 'O2', 'N2', 'NO', 'NS', 'ND', 'NeIn'], 
+            {
+                'long_name': 'Scaled species',
+                'description': 'List of species whose densities have been scaled to match the TEC.',
+            },
+        )
+        ds['denperturb'] = ('scaled_species', dpart, {
+            'long_name': 'Density scale factor',
+            'description': 'Density scale factor applied to the atmospheric densities. 1.0 means no scaling.',
         })
 
         ds.attrs['nmf2'] = ds_iri.attrs['nmF2']
