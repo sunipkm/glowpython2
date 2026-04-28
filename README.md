@@ -197,3 +197,8 @@ If you use this code in your work, please cite the repository:
   url          = {https://github.com/sunipkm/glowpython2},
 }
 ```
+
+# Changelog
+- <b>2026-01-09</b>
+  - Version bumped to 0.0.3
+  - BREAKING: Dataset structure changed. 

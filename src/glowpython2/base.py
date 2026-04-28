@@ -161,6 +161,7 @@ class GlowModel(Singleton):
         self._dyear = np.nan
         self._magmodel = 'POGO68'
         self._newcoeffs = False
+        self._ds = Dataset()  # empty dataset
 
     def initialize(
         self,
@@ -517,8 +518,10 @@ class GlowModel(Singleton):
         cglow.emono = emono
 
         # ! Call MAXT to put auroral electron flux specified by namelist input into phitop array:
-        cg.phitop = maxt(cg.ef, cg.ec, cg.ener, cg.edel, cg.itail,
-                         cg.fmono, cg.emono)
+        cg.phitop = maxt(
+            cg.ef, cg.ec, cg.ener, cg.edel, cg.itail,
+            cg.fmono, cg.emono
+        )
 
         ds.attrs['itail'] = cglow.itail
         ds.attrs['fmono'] = cglow.fmono
@@ -640,7 +643,7 @@ class GlowModel(Singleton):
         # ZXDEN   array of excited and and/or ionized state densities at each altitude:
         # O+(2P), O+(2D), O+(4S), N+, N2+, O2+, NO+, N2(A), N(2P),
         # N(2D), O(1S), O(1D); cm-3
-        cg.zxden[2, :] = ds_iri['O+'].values.clip(min=0).astype(float32, order='F') # O+(4S)
+        cg.zxden[2, :] = ds_iri['O+'].values.clip(min=0).astype(float32, order='F')  # O+(4S)
         cg.zxden[5, :] = ds_iri['O2+'].values.clip(min=0).astype(float32, order='F')
         cg.zxden[6, :] = ds_iri['NO+'].values.clip(min=0).astype(float32, order='F')
 
@@ -737,7 +740,7 @@ class GlowModel(Singleton):
         self._atm = True
         return
 
-    def radtrans(
+    def photochem(
         self,
         xuvfac: int = 3,
         jlocal: bool = False,
@@ -748,9 +751,8 @@ class GlowModel(Singleton):
         ion_o2: Optional[Sequence] = None,
         ion_no: Optional[Sequence] = None
     ) -> None:
-        """## Run the radiative transfer model.
+        """## Run the photochemistry model.
         Executes the following subroutines in order:
-          - `glowfort.fieldm`: Calculate the magnetic dip angle and SZA (radians).
           - `glowfort.ssflux`: Scale the solar flux using scaling mode and F10.7 values.
           - `glowfort.rcolum`: Calculate slant path column densities of major species in
             the direction of the sun.
@@ -1049,8 +1051,17 @@ class GlowModel(Singleton):
         ### Returns:
             - `xarray.Dataset`: GLOW model output dataset.
         """
-        self.atmosphere(density_perturbation, tec, version=version, settings=settings)
-        self.radtrans(xuvfac, jlocal, kchem, ion_n=ion_n, ion_n2=ion_n2, ion_o=ion_o, ion_o2=ion_o2, ion_no=ion_no)
+        self.atmosphere(
+            density_perturbation, tec,
+            version=version,
+            settings=settings,
+        )
+        self.photochem(
+            xuvfac, jlocal, kchem,
+            ion_n=ion_n, ion_n2=ion_n2,
+            ion_o=ion_o, ion_o2=ion_o2,
+            ion_no=ion_no,
+        )
         return self.result()
 
     def result(self, copy: bool = True) -> xarray.Dataset:
@@ -1127,30 +1138,32 @@ class GlowModel(Singleton):
         return self.evaluate(xuvfac, jlocal, kchem, density_perturbation=density_perturbation, tec=tec, ion_n=ion_n, ion_n2=ion_n2, ion_o=ion_o, ion_o2=ion_o2, ion_no=ion_no, version=version, settings=settings)
 
 
-def generic(time: datetime,
-            glat: Numeric,
-            glon: Numeric,
-            nbins: int = 100,
-            Q: Optional[Numeric] = None,
-            Echar: Optional[Numeric] = None,
-            density_perturbation: Optional[Sequence] = None,
-            *,
-            geomag_params: Optional[dict] = None,
-            tzaware: bool = False,
-            magmodel: MagField = 'POGO68',
-            version: AtmosphereKind = 'MSIS00_IRI90',
-            settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
-            newcoeffs: bool = False,
-            tec: Optional[Numeric | Dataset] = None,
-            metadata: Optional[dict] = None,
-            jmax: int = 250,
-            sflux: FluxSource | Tuple[Sequence, Sequence, Sequence] = 'EUVAC',
-            xuvfac: int = 3,
-            kchem: int = 4,
-            jlocal: bool = False,
-            itail: bool = False,
-            fmono: float = 0,
-            emono: float = 0) -> xarray.Dataset:
+def generic(
+    time: datetime,
+    glat: Numeric,
+    glon: Numeric,
+    nbins: int = 100,
+    Q: Optional[Numeric] = None,
+    Echar: Optional[Numeric] = None,
+    density_perturbation: Optional[Sequence] = None,
+    *,
+    geomag_params: Optional[dict] = None,
+    tzaware: bool = False,
+    magmodel: MagField = 'POGO68',
+    version: AtmosphereKind = 'MSIS00_IRI90',
+    settings: Optional[Tuple[Msis21Settings, Iri20Settings] | Tuple[Msis00Settings, Iri90Settings]] = None,
+    newcoeffs: bool = False,
+    tec: Optional[Numeric | Dataset] = None,
+    metadata: Optional[dict] = None,
+    jmax: int = 250,
+    sflux: FluxSource | Tuple[Sequence, Sequence, Sequence] = 'EUVAC',
+    xuvfac: int = 3,
+    kchem: int = 4,
+    jlocal: bool = False,
+    itail: bool = False,
+    fmono: float = 0,
+    emono: float = 0,
+) -> xarray.Dataset:
     """## GLOW model with optional electron precipitation assuming Maxwellian distribution.
     Defaults to no precipitation.
 
