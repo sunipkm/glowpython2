@@ -10,6 +10,7 @@ from xarray import Dataset
 import geomagdata as gi
 
 from .utils import glowdate, Singleton
+from .version import __version__
 from .glowatmo import iri90_eval  # type: ignore
 
 DIRNAME = Path(os.path.dirname(__file__)) / 'data'
@@ -257,6 +258,7 @@ class Iri90(Singleton):
             self._ds_attrib += (ds_attrib - ds_build)*1e-6
             self._ds_settings += (ds_settings - ds_attrib)*1e-6
             self._total += (ds_settings - start)*1e-6
+        ds.attrs['version'] = f'IRI-90 v{__version__}'
         return ds
 
     def evaluate(

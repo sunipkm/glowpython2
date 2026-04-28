@@ -123,7 +123,7 @@ class NrlMsis00(Singleton):
         ds_build = perf_counter_ns()
         ds.attrs['attributes'] = 'Stored as JSON strings'
         ds.attrs['description'] = 'NRLMSISE-00 model output'
-        ds.attrs['version'] = __version__
+        ds.attrs['version'] = f'NRLMSISE-00 v{__version__}'
         ds.attrs['lat'] = Attribute(
             value=float(lat),
             units='degrees',

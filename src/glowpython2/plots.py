@@ -108,6 +108,15 @@ class Plot:
             axs[1].set_xlim(1e-3, None)
             axs[2].set_xlim(1e-3, None)
 
+    def suptitle(self, title: str):
+        if self._density_figure is not None:
+            self._density_figure.suptitle(title)
+        if self._precip_figure is not None:
+            self._precip_figure.suptitle(title)
+        if self._temperature_figure is not None:
+            self._temperature_figure.suptitle(title)
+        if self._ver_figure is not None:
+            self._ver_figure.suptitle(title)
 
 def ver_group(iono: xarray.DataArray, ttxt: str, ax, linestyle: str = '-'):
     nm = np.nanmax(iono)

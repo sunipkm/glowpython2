@@ -56,6 +56,8 @@ def Maxwellian():
 
     plot.ver(iono)
 
+    plot.suptitle(iono.attrs.get('version', ''))
+
     show()
 
 
@@ -94,5 +96,7 @@ def NoPrecipitation():
     plot.temperature(iono)
 
     plot.ver(iono)
+
+    plot.suptitle(iono.attrs.get('version', ''))
 
     show()

@@ -5,13 +5,14 @@
 [build-system]
 requires = [
     "meson-python",
+    "setuptools-scm>=8",
     "numpy >= 1.14.5" # in order to get include dirs for meson without --no-build-isolation on pip install. isolation = false does not work.
 ]
 build-backend = "mesonpy"
 
 [project]
 name = "glowpython2"
-version = "0.0.3"
+dynamic = ["version"]
 requires-python = ">=3.9"
 authors = [
     {name = "Sunip K. Mukherjee", email = "sunipkmukherjee@gmail.com"},
@@ -33,6 +34,8 @@ classifiers = [
 license = {file = "LICENSE"}
 readme = "README.md"
 dependencies = ['meson', 'ninja', 'numpy >= 1.14.5', 'xarray >= 0.15', 'geomagdata >= 1.6.1', 'pytz']
+
+[tool.setuptools_scm]
 
 [project.urls]
 homepage = "https://github.com/sunipkm/glowpython"

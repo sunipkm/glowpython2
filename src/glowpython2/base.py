@@ -22,6 +22,7 @@ from .atmo_msis00 import Msis00Settings, NrlMsis00
 from .atmo_iri90 import Iri90, Settings as Iri90Settings
 from .igrf import Igrf
 from .pogo68 import Pogo68
+from .version import __version__
 
 IGRF = Igrf()
 POGO68 = Pogo68()
@@ -732,7 +733,7 @@ class GlowModel(Singleton):
         ds.attrs['hme'] = ds_iri.attrs['hmE']
         ds.attrs['nmd'] = ds_iri.attrs['nmD']
         ds.attrs['hmd'] = ds_iri.attrs['hmD']
-
+        ds.attrs['version'] = f'GLOWPython2 v{__version__}, {ds_msis.attrs["version"]}, {ds_iri.attrs["version"]}'
         self._atm = True
         return
 
