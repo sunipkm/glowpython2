@@ -166,7 +166,7 @@ C
       dimension zkm(nz), outf(11,nz), oarr(30)
       character(*), intent(in) :: direct
       character(1024) :: path
-      character(10) filename
+      character(10) :: filename, null_file
       INTEGER EGNR,AGNR,DAYNR,DDO,DO2,SEASON,SEADAY
       REAL LATI,LONGI,MO2,MO,MODIP,NMF2,MAGBR
       REAL NMF1,NME,NMD,NEI,MM,MLAT,MLONG,NOBO2
@@ -212,6 +212,13 @@ C
 C
 C PROGAM CONSTANTS
 C
+
+#if defined(_WIN32) || defined(_WIN64) || defined(__MINGW32__) || defined(__CYGWIN__)
+      null_file = "NUL"
+#else
+      null_file = "/dev/null"
+#endif
+
 	icalls=icalls+1
         HHALF = 0.
 
@@ -259,7 +266,7 @@ C
       IUCCIR=10
       ! KONSOL=stderr
       KONSOL=25
-      OPEN(KONSOL,FILE="/dev/null",status="old")
+      OPEN(KONSOL,FILE=null_file,status="old")
 
 c
 c selection of density and ion composition options ..................

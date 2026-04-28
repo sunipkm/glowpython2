@@ -39,9 +39,35 @@ brew install gfortran
 ```sh
 export LIBRARY_PATH="$LIBRARY_PATH:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib"
 ```
-Then reopen the terminal. This fixes the issue where `-lSystem` fails for `gfortran`. 
-### Windows
-The Windows installation is not officially supported at this time. However, you can try installing the [MinGW-w64](http://mingw-w64.org/doku.php) toolchain and ensure that `gfortran` is available in your system's PATH. You may also consider using the Windows Subsystem for Linux (WSL) to set up a Linux-like environment on your Windows machine.
+Then reopen the terminal. This fixes the issue where `-lSystem` fails for `gfortran`.
+ 
+### Windows (amd64 or x86_64 targets)
+On Windows, MSYS2 is the preferred distribution for installing the Fortran compiler toolchain (for GNU Compiler Collection).
+- Install [MSYS2](https://www.msys2.org/).
+  Note the directory where MSYS2 was installed (defaults to `C:\msys64`) [referred to as `MSYS_INSTALL_DIR`].
+  It is not recommended to change this directory.
+- Launch the MSYS2 terminal (MSYS2 MSYS application on the start menu)
+- Update MSYS2 environment (assuming fresh install):
+  ```sh
+  pacman -Syu # Restart the terminal
+  pacman -Su  # Update packages
+  ```
+- Install the GNU Compiler Collection:
+  ```sh
+  pacman -S --needed base-devel mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-gcc-fortran
+  ```
+- Add `MSYS_INSTALL_DIR\ucrt\bin` (defaults to `C:\msys64\ucrt\bin`) to `PATH`:
+  - Search for `env` in the Start menu,
+  - Select "Edit the system environment variables",
+  - Click "Environment Variables",
+  - Double click 'Path' under 'User variables for USER'
+  - Click "New"
+  - Type in, or paste the full path to `ucrt\bin` (defaults to `C:\msys64\ucrt\bin`)
+  - Click "Ok" on the environment variable windows to save the changes.
+
+Change the toolchain names accordingly for Windows arm64.
+This platform has not been tested and is not officially supported.
+
 ## Installation
 Direct installation using pip:
 ```sh
@@ -55,6 +81,10 @@ pip install glowpython2@git+https://github.com/sunipkm/glowpython2
 
 Requires (and installs) [geomagdata](https://pypi.org/project/geomagdata/) for timezone aware geomagnetic parameter retrieval.
 ## Usage
+### Command-line examples
+* `Glow2Maxwellian`: asdf
+* `Glow2NoPrecip`: asdf
+
 ### Pre-defined examples
 
 * [`Maxwellian.py`](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/Examples/Maxwellian.py): Maxwellian precipitation, specify Q (flux) and E0 (characteristic energy).
