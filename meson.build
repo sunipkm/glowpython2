@@ -4,7 +4,11 @@
 
 project('glowpython2', 'c',
   version: run_command(
-    ['python3', '-m', 'setuptools_scm'],
+    [
+      find_program('python3', 'python', required: true), 
+      '-m', 
+      'setuptools_scm',
+    ],
     check: true
   ).stdout().strip(),
   license: 'BSD-3',

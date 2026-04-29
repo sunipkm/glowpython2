@@ -56,13 +56,13 @@ On Windows, MSYS2 is the preferred distribution for installing the Fortran compi
   ```sh
   pacman -S --needed base-devel mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-gcc-fortran
   ```
-- Add `MSYS_INSTALL_DIR\ucrt\bin` (defaults to `C:\msys64\ucrt\bin`) to `PATH`:
+- Add `MSYS_INSTALL_DIR\ucrt64\bin` (defaults to `C:\msys64\ucrt64\bin`) to `PATH`:
   - Search for `env` in the Start menu,
   - Select "Edit the system environment variables",
   - Click "Environment Variables",
   - Double click 'Path' under 'User variables for USER'
   - Click "New"
-  - Type in, or paste the full path to `ucrt\bin` (defaults to `C:\msys64\ucrt\bin`)
+  - Type in, or paste the full path to `ucrt64\bin` (defaults to `C:\msys64\ucrt64\bin`)
   - Click "Ok" on the environment variable windows to save the changes.
 
 Change the toolchain names accordingly for Windows arm64.

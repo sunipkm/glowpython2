@@ -1,5 +1,5 @@
 {
-	"recommendations": [
+    "recommendations": [
         "ms-python.python",
         "autopep8.autopep8",
         "ms-python.vscode-pylance",
@@ -10,5 +10,6 @@
         "ms-toolsai.jupyter-renderers",
         "ms-toolsai.vscode-jupyter-slideshow",
         "ltex-plus.vscode-ltex-plus",
-	]
+        "mesonbuild.mesonbuild",
+    ]
 }
