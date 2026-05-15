@@ -33,7 +33,16 @@ classifiers = [
 ]
 license = {file = "LICENSE"}
 readme = "README.md"
-dependencies = ['meson', 'ninja', 'numpy >= 1.14.5', 'xarray >= 0.15', 'geomagdata >= 1.6.1', 'pytz']
+dependencies = [
+  'meson', 
+  'ninja', 
+  'numpy >= 1.14.5', 
+  'xarray >= 0.15', 
+  'geomagdata >= 1.6.1', 
+  'pytz',
+  'msis21py>=0.0.5',
+  'iri20py>=0.0.5',
+]
 
 [tool.setuptools_scm]
 

@@ -3,7 +3,7 @@ from os import path
 import pytz
 import geomagdata as gi
 from datetime import datetime, timedelta
-from numpy import allclose, array, asarray, float32, full, isnan, ndarray, ones, trapezoid, zeros, copy
+from numpy import allclose, array, asarray, float32, isnan, ndarray, ones, trapezoid, zeros
 import numpy as np
 from xarray import Dataset, Variable
 import xarray
@@ -11,7 +11,7 @@ import xarray
 from .coeffs import CLASSIC_ACOEFF, CLASSIC_BCOEFF, MODGLOW_ACOEFF, MODGLOW_BCOEFF
 from .utils import Singleton, alt_grid, decimal_year, glowdate, geocent_to_geodet, interpolate_nan
 from .glowfort import cglow, cglow as cg, maxt, glow, pyconduct  # type: ignore
-from typing import Any, Dict, Iterable, Optional, Sequence, SupportsFloat as Numeric, Tuple, Literal
+from typing import Dict, Optional, Sequence, SupportsFloat as Numeric, Tuple, Literal
 import atexit
 import warnings
 from msis21py import NrlMsis21
@@ -397,9 +397,10 @@ class GlowModel(Singleton):
         _glon = glon  # unmodified for dataset
         glon = glon % 360  # type: ignore
 
-        (cg.idate, cg.ut, cg.glat, cg.glong, cg.f107a,
-         cg.f107, cg.f107p, cg.ap) = \
-            (idate, utsec, glat, glon, f107a, f107, f107p, ap)
+        (
+            cg.idate, cg.ut, cg.glat, cg.glong, cg.f107a,
+            cg.f107, cg.f107p, cg.ap,
+        ) = (idate, utsec, glat, glon, f107a, f107, f107p, ap)
 
         self._stl = (cg.ut/3600. + cg.glong/15.) % 24  # type: ignore
 
@@ -716,8 +717,9 @@ class GlowModel(Singleton):
             'description': 'Scaling factor applied to the electron density to match the TEC. 1.0 means no scaling.',
         })
 
-        ds.coords['scaled_species'] = ('scaled_species', 
-            ['O', 'O2', 'N2', 'NO', 'NS', 'ND', 'NeIn'], 
+        ds.coords['scaled_species'] = (
+            'scaled_species',
+            ['O', 'O2', 'N2', 'NO', 'NS', 'ND', 'NeIn'],
             {
                 'long_name': 'Scaled species',
                 'description': 'List of species whose densities have been scaled to match the TEC.',

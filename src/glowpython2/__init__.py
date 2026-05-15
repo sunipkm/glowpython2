@@ -98,12 +98,18 @@ Output Dataset:
         - `jlocal`: Local calculation only (disable electron transport).
         - `kchem`: GLOW chemistry level.
 """
-from .base import GlowModel, \
-    generic, no_precipitation, maxwellian, monoenergetic, \
-    FluxSource, Msis21Settings, Iri20Settings, MagField, \
-    AtmosphereKind
+from .base import (
+    GlowModel,
+    generic, no_precipitation, maxwellian, monoenergetic,
+    FluxSource, Msis21Settings, Iri20Settings, MagField,
+    AtmosphereKind,
+)
 from .atmo_msis00 import Msis00Settings, NrlMsis00
-from .atmo_iri90 import Settings as Iri90Settings, ComputedSettings as Iri90ComputedSettings, Iri90
+from .atmo_iri90 import (
+    Settings as Iri90Settings,
+    ComputedSettings as Iri90ComputedSettings,
+    Iri90,
+)
 from . import utils
 from .plots import Plot
 from .version import __version__

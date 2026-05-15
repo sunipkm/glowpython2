@@ -4,7 +4,10 @@ from datetime import timedelta, datetime, UTC
 import os
 from pathlib import Path
 from time import perf_counter_ns
-from typing import Any, Dict, Iterable, Literal, Optional, SupportsFloat as Numeric, Tuple
+from typing import (
+    Any, Dict, Iterable, Literal,
+    Optional, SupportsFloat as Numeric, Tuple,
+)
 import numpy as np
 from xarray import Dataset
 import geomagdata as gi
@@ -196,8 +199,10 @@ class Iri90(Singleton):
             oarr[2]*1e-6, 'cm^-3', 'F1 Peak Density', 'F1 layer peak electron density')
         attrs['hmF1'] = Attribute(
             oarr[3], 'km', 'F1 Peak Height', 'F1 layer peak height')
-        attrs['nmE'] = Attribute(oarr[4]*1e-6, 'cm^-3',
-                                 'E Layer Peak Density', 'E layer peak electron density')
+        attrs['nmE'] = Attribute(
+            oarr[4]*1e-6, 'cm^-3',
+            'E Layer Peak Density', 'E layer peak electron density'
+        )
         attrs['hmE'] = Attribute(
             oarr[5], 'km', 'E Layer Peak Height', 'E layer peak height')
         attrs['nmD'] = Attribute(
@@ -213,34 +218,62 @@ class Iri90(Singleton):
         attrs['valley_top'] = Attribute(
             oarr[11], 'km', 'Height of E-valley top')
         attrs['Te-Peak'] = Attribute(oarr[12], 'K', 'Te Peak')
-        attrs['hTe-Peak'] = Attribute(oarr[13],
-                                      'km', 'hTe Peak', 'Peak Te altitude')
-        attrs['Te-MOD(300km)'] = Attribute(oarr[14], 'K',
-                                           'Te MOD(300km)', 'Electron temperature at 300 km altitude')
-        attrs['Te-MOD(400km)'] = Attribute(oarr[15], 'K',
-                                           'Te MOD(400km)', 'Electron temperature at 400 km altitude')
-        attrs['Te-MOD(600km)'] = Attribute(oarr[16], 'K',
-                                           'Te MOD(600km)', 'Electron temperature at 600 km altitude')
-        attrs['Te-MOD(1400km)'] = Attribute(oarr[17], 'K',
-                                            'Te MOD(1400km)', 'Electron temperature at 1400 km altitude')
-        attrs['Te-MOD(3000km)'] = Attribute(oarr[18], 'K',
-                                            'Te MOD(3000km)', 'Electron temperature at 3000 km altitude')
-        attrs['Te-MOD(120km)'] = Attribute(oarr[19], 'K', 'Te MOD(120km)',
-                                           'Electron temperature at 120 km altitude, Te = Ti = Tn')
-        attrs['Ti-MOD(430km)'] = Attribute(oarr[20], 'K',
-                                           'Ti MOD(430km)', 'Ion temperature at 430 km altitude')
-        attrs['Ti-Te-Eq'] = Attribute(oarr[21], 'km', 'Ti-Te-Eq',
-                                      'Height at which ion and electron temperatures are at equilibrium')
-        attrs['sza'] = Attribute(oarr[22], 'degrees', 'Solar Zenith Angle',
-                                 'Solar zenith angle at the specified location and time')
+        attrs['hTe-Peak'] = Attribute(
+            oarr[13],
+            'km', 'hTe Peak', 'Peak Te altitude'
+        )
+        attrs['Te-MOD(300km)'] = Attribute(
+            oarr[14], 'K',
+            'Te MOD(300km)', 'Electron temperature at 300 km altitude'
+        )
+        attrs['Te-MOD(400km)'] = Attribute(
+            oarr[15], 'K',
+            'Te MOD(400km)', 'Electron temperature at 400 km altitude'
+        )
+        attrs['Te-MOD(600km)'] = Attribute(
+            oarr[16], 'K',
+            'Te MOD(600km)', 'Electron temperature at 600 km altitude'
+        )
+        attrs['Te-MOD(1400km)'] = Attribute(
+            oarr[17], 'K',
+            'Te MOD(1400km)', 'Electron temperature at 1400 km altitude'
+        )
+        attrs['Te-MOD(3000km)'] = Attribute(
+            oarr[18], 'K',
+            'Te MOD(3000km)', 'Electron temperature at 3000 km altitude'
+        )
+        attrs['Te-MOD(120km)'] = Attribute(
+            oarr[19], 'K', 'Te MOD(120km)',
+            'Electron temperature at 120 km altitude, Te = Ti = Tn'
+        )
+        attrs['Ti-MOD(430km)'] = Attribute(
+            oarr[20], 'K',
+            'Ti MOD(430km)', 'Ion temperature at 430 km altitude'
+        )
+        attrs['Ti-Te-Eq'] = Attribute(
+            oarr[21], 'km', 'Ti-Te-Eq',
+            'Height at which ion and electron temperatures are at equilibrium'
+        )
+        attrs['sza'] = Attribute(
+            oarr[22], 'degrees', 'Solar Zenith Angle',
+            'Solar zenith angle at the specified location and time'
+        )
         attrs['sun_dec'] = Attribute(
-            oarr[23], 'degrees', 'Solar Declination', 'Solar declination angle at the specified time')
-        attrs['dip'] = Attribute(oarr[24], 'degrees', 'Magnetic Dip Angle',
-                                 'Magnetic dip angle at the specified location')
-        attrs['dip-lat'] = Attribute(oarr[25], 'degrees',
-                                     'Magnetic Dip Latitude', 'Magnetic dip latitude')
-        attrs['dip-lat-mod'] = Attribute(oarr[26], 'degrees',
-                                         'Magnetic Dip Latitude (Modified)', 'Modified magnetic dip latitude')
+            oarr[23], 'degrees',
+            'Solar Declination', 'Solar declination angle at the specified time'
+        )
+        attrs['dip'] = Attribute(
+            oarr[24], 'degrees', 'Magnetic Dip Angle',
+            'Magnetic dip angle at the specified location'
+        )
+        attrs['dip-lat'] = Attribute(
+            oarr[25], 'degrees',
+            'Magnetic Dip Latitude', 'Magnetic dip latitude'
+        )
+        attrs['dip-lat-mod'] = Attribute(
+            oarr[26], 'degrees',
+            'Magnetic Dip Latitude (Modified)', 'Modified magnetic dip latitude'
+        )
 
         for key, attr in attrs.items():
             if isinstance(attr, Attribute):
@@ -287,7 +320,7 @@ class Iri90(Singleton):
         if tzaware:
             time = time.astimezone(UTC)
         year, utsec = glowdate(time)
-        lon = lon % 360  # ensure lon is in 0-360 range
+        lon = float(lon) % 360  # ensure lon is in 0-360 range
         if f107a is None:
             ret = gi.get_indices([time], smoothdays=81)  # type: ignore
             f107a_ = ret['f107s'].iloc[0]

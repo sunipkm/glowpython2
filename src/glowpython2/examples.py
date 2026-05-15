@@ -3,7 +3,6 @@ import numpy as np
 from glowpython2.utils import interpolate_nan
 from .base import maxwellian, no_precipitation
 from .plots import Plot
-from datetime import datetime
 from matplotlib.pyplot import show
 from dateutil.parser import parse
 import sys
@@ -42,7 +41,7 @@ def Maxwellian():
     version = 'MSIS21_IRI20' if args.newmodel else 'MSIS00_IRI90'
     lstyles = ['-', '--']
     plot = Plot()
-    iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version, magmodel=magmodel)  # type: ignore
+    iono = maxwellian(time, glat, glon, Nbins, Q=Q, Echar=Echar, tec=tec, version=version, magmodel=magmodel)
     ne = interpolate_nan(iono["NeIn"].values, inplace=False)
     hmf = iono.attrs.get('hmf2')
     if hmf is not None:
@@ -84,7 +83,7 @@ def NoPrecipitation():
     magmodel = 'IGRF14' if args.newmodel else 'POGO68'
     version = 'MSIS21_IRI20' if args.newmodel else 'MSIS00_IRI90'
     plot = Plot()
-    iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version, magmodel=magmodel)  # type: ignore
+    iono = no_precipitation(time, glat, glon, Nbins, tec=tec, version=version, magmodel=magmodel)
     ne = interpolate_nan(iono["NeIn"].values, inplace=False)
     hmf = iono.attrs.get('hmf2')
     if hmf is not None:

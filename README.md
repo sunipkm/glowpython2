@@ -64,9 +64,11 @@ On Windows, MSYS2 is the preferred distribution for installing the Fortran compi
   - Click "New"
   - Type in, or paste the full path to `ucrt64\bin` (defaults to `C:\msys64\ucrt64\bin`)
   - Click "Ok" on the environment variable windows to save the changes.
+- Continue with installation instructions for the Python packages below, in a new, regular terminal (e.g. Command Prompt or PowerShell with Python installed).
 
-Change the toolchain names accordingly for Windows arm64.
-This platform has not been tested and is not officially supported.
+> [!NOTE] 
+> Change the toolchain names accordingly for Windows arm64.
+> This platform has not been tested and is not officially supported.
 
 ## Installation
 Direct installation using pip:

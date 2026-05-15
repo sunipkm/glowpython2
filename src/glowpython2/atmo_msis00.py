@@ -3,11 +3,17 @@ import os
 from pathlib import Path
 from time import perf_counter_ns
 from datetime import UTC, datetime, timedelta
-from typing import Any, Optional, Dict, Tuple, Sequence, SupportsFloat as Numeric
+from typing import (
+    Any, Optional, Dict, Tuple,
+    SupportsFloat as Numeric,
+)
 from dataclasses import dataclass
 import numpy as np
 from xarray import Dataset
-from msis21py.settings import Settings as Msis00Settings, ComputedSettings as Msis00ComputedSettings
+from msis21py.settings import (
+    Settings as Msis00Settings,
+    ComputedSettings as Msis00ComputedSettings,
+)
 import geomagdata as gi
 
 from .version import __version__
@@ -219,7 +225,7 @@ class NrlMsis00(Singleton):
             time = time.astimezone(UTC)
         ydate, utsec = glowdate(time)
         if geomag_params is None:
-            ip = gi.get_indices([time - timedelta(days=1), time], # type: ignore
+            ip = gi.get_indices([time - timedelta(days=1), time],  # type: ignore
                                 81, tzaware=tzaware)  # type: ignore
             f107a = float(ip["f107s"].iloc[1])
             f107 = float(ip['f107'].iloc[1])
