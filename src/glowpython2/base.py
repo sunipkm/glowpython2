@@ -3,10 +3,15 @@ from os import path
 import pytz
 import geomagdata as gi
 from datetime import datetime, timedelta
-from numpy import allclose, array, asarray, float32, isnan, ndarray, ones, trapezoid, zeros
+from numpy import allclose, array, asarray, float32, isnan, ndarray, ones, zeros
 import numpy as np
 from xarray import Dataset, Variable
 import xarray
+
+try:
+    from numpy import trapezoid # type: ignore
+except ImportError:
+    from numpy import trapz as trapezoid # type: ignore
 
 from .coeffs import CLASSIC_ACOEFF, CLASSIC_BCOEFF, MODGLOW_ACOEFF, MODGLOW_BCOEFF
 from .utils import Singleton, alt_grid, decimal_year, glowdate, geocent_to_geodet, interpolate_nan
