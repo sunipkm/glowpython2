@@ -1,6 +1,6 @@
 [![DOI](https://zenodo.org/badge/1026267765.svg)](https://zenodo.org/badge/latestdoi/1026267765)
 # GlowPython2
-The FORTRAN GLobal airglOW ([GLOW](https://github.com/NCAR/GLOW)) Model in Python &ge; 3.9.
+The FORTRAN GLobal airglOW ([GLOW](https://github.com/NCAR/GLOW)) Model in Python &ge; 3.11.
 
 A Fortran compiler is **REQUIRED**.
 
