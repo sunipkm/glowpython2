@@ -51,13 +51,21 @@ jobs:
           TMP: C:\T
         run: |
           conda install -c conda-forge gfortran -y
-          conda run --no-capture-output pip install .
+          conda run --no-capture-output pip install .[test]
           conda run python -c "import glowpython2; print(glowpython2.__version__)"
 
       - name: Install package (Linux/macOS)
         if: runner.os != 'Windows'
-        run: pip install .
+        run: pip install .[test]
 
-      - name: Verify import (Linux/macOS)
+      - name: Run tests (Linux/macOS)
         if: runner.os != 'Windows'
-        run: python -c "import glowpython2; print(glowpython2.__version__)"
+        run: python -m pytest tests
+
+      - name: Run tests (Windows)
+        # Running all tests on Windows for now...
+        # If the runtime starts getting too long, this can be changed to just one test
+        if: runner.os == 'Windows'
+        run: conda run --no-capture-output python -m pytest tests
+        # run: conda run --no-capture-output python -m pytest tests/test_no_precip.py
+        # ^^ If we just want to run one test

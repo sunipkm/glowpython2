@@ -21,7 +21,46 @@ Currently three Python versions are used (stable, latest, and experimental).
 
 The tests are run as a GitHub action, where the source file & instructions are located in [.github/workflows/ci.yml](workflows/ci.yml)
 
-Should mostly be self-explanatory but reach out if you have questions/comments/issues.
+### Installation for running tests
+
+Because `glowpython2` uses meson-python as its build backend, 
+**editable installs (`pip install -e .`) do not work correctly for running the test suite**.
+Data files required by the Fortran backend are not placed where the package expects them.
+Use a regular install instead:
+
+```bash
+pip install .[test]
+```
+
+**After modifying Fortran source**, you must reinstall for changes to take effect:
+
+```bash
+pip install .
+```
+
+### Running tests locally
+
+From the repo root:
+
+```bash
+pytest tests/
+```
+
+You may run an individual test file if the tests are taking too long.
+
+### Test layout
+
+- **`tests/test_examples.py`** — automatically runs every script in `Examples/` as a subprocess smoke test. No maintenance needed; new examples are picked up automatically.
+- **`tests/test_no_precip.py`**, **`test_maxwellian.py`** — structure and physics assertions for the top-level GLOW functions.
+- **`tests/test_iri.py`** — assertions for both `Iri90` and `Iri2020`.
+- **`tests/test_msis.py`** — assertions for both `NrlMsis00` and `NrlMsis21`.
+- **`tests/conftest.py`** — shared fixtures (`sample_time`, `sample_lat`, `sample_lon`).
+
+### Adding or modifying tests
+
+- **New example script**: drop a `.py` file in `Examples/` — it will be picked up by `test_examples.py` automatically.
+- **New assertion test**: add a `test_*.py` file in `tests/`, or add a test function to an existing file. Use the fixtures from `conftest.py` for the standard time/location inputs.
+- **Physics assertions** should check that outputs are physically reasonable (positive densities, sane temperature ranges, expected species present) rather than matching exact numerical values, so tests stay valid across minor model updates.
 
 ## Changelog
 

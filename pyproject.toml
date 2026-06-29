@@ -43,6 +43,9 @@ dependencies = [
   'iri20py >= 0.0.5',
 ]
 
+[project.optional-dependencies]
+test = ["pytest"]
+
 [tool.setuptools_scm]
 
 [project.urls]
