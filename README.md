@@ -45,37 +45,93 @@ brew install gfortran
 export LIBRARY_PATH="$LIBRARY_PATH:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib"
 ```
 Then reopen the terminal. This fixes the issue where `-lSystem` fails for `gfortran`.
- 
+
 ### Windows (amd64 or x86_64 targets)
-On Windows, MSYS2 is the preferred distribution for installing the Fortran compiler toolchain (for GNU Compiler Collection).
-- Install [MSYS2](https://www.msys2.org/).
-  Note the directory where MSYS2 was installed (defaults to `C:\msys64`) [referred to as `MSYS_INSTALL_DIR`].
-  It is not recommended to change this directory.
-- Launch the MSYS2 terminal (MSYS2 MSYS application on the start menu)
-- Update MSYS2 environment (assuming fresh install):
-  ```sh
-  pacman -Syu # Restart the terminal
-  pacman -Su  # Update packages
-  ```
-- Install the GNU Compiler Collection:
-  ```sh
-  pacman -S --needed base-devel mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-gcc-fortran
-  ```
-- Add `MSYS_INSTALL_DIR\ucrt64\bin` (defaults to `C:\msys64\ucrt64\bin`) to `PATH`:
-  - Search for `env` in the Start menu,
-  - Select "Edit the system environment variables",
-  - Click "Environment Variables",
-  - Double click 'Path' under 'User variables for USER'
-  - Click "New"
-  - Type in, or paste the full path to `ucrt64\bin` (defaults to `C:\msys64\ucrt64\bin`)
-  - Click "Ok" on the environment variable windows to save the changes.
-- Continue with installation instructions for the Python packages below, in a new, regular terminal (e.g. Command Prompt or PowerShell with Python installed).
+
+> [!IMPORTANT]
+> **Windows Path Length Limitation**: `glowpython2` and its dependencies (`msis21py`,
+> `iri20py`) compile Fortran code using Meson & pip, which can put temporary object
+> files with very long paths. Windows has a 260-character path limit by default.
+> 
+> You **must set the TEMP and TMP environment variables to short paths** before 
+> installing, regardless of which method you use to install `gfortran`.
+
+**Conda (Recommended):**
+
+Using [conda](https://docs.conda.io/en/latest/) or [miniforge](https://github.com/conda-forge/miniforge):
+
+```sh
+conda install -c conda-forge gfortran
+mkdir C:\T
+set TEMP=C:\T
+set TMP=C:\T
+```
+
+**Other Options:**
+
+<details>
+<summary>MSYS2</summary>
+
+1. Install [MSYS2](https://www.msys2.org/) (defaults to `C:\msys64`)
+2. Launch the MSYS2 terminal from the start menu
+3. Update MSYS2:
+   ```sh
+   pacman -Syu  # Restart the terminal when prompted
+   pacman -Su   # Update packages
+   ```
+4. Install the GNU Compiler Collection:
+   ```sh
+   pacman -S --needed base-devel mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-gcc-fortran
+   ```
+5. Add MSYS2 to PATH:
+   - Search for "env" in the Start menu
+   - Select "Edit the system environment variables"
+   - Click "Environment Variables"
+   - Double-click 'Path' under 'User variables'
+   - Click "New"
+   - Add `C:\msys64\ucrt64\bin`
+   - Click OK to save
+6. In a new regular terminal (Command Prompt or PowerShell), set short temp paths and install:
+   ```sh
+   mkdir C:\T
+   set TEMP=C:\T
+   set TMP=C:\T
+   ```
+
+</details>
+
+<details>
+<summary>Winlibs</summary>
+
+1. Download a pre-built MinGW-w64 bundle from [winlibs.com](https://winlibs.com)
+2. Extract it anywhere on your system
+3. Add the `bin\` folder to your PATH:
+   - Search for "env" in the Start menu
+   - Select "Edit the system environment variables"
+   - Click "Environment Variables"
+   - Double-click 'Path' under 'User variables'
+   - Click "New"
+   - Add the full path to the `bin` folder (e.g., `C:\mingw\bin`)
+   - Click OK to save
+4. In a new terminal, set short temp paths and install:
+   ```sh
+   mkdir C:\T
+   set TEMP=C:\T
+   set TMP=C:\T
+   ```
+
+</details>
+
+
+Then continue with the instructions below. Either `pip install` or use build manually.
 
 > [!NOTE] 
-> Change the toolchain names accordingly for Windows arm64.
-> This platform has not been tested and is not officially supported.
+> Windows arm64 is not tested and is not officially supported.
 
 ## Installation
+
+**Please ensure you have followed the prequisite steps above before installing!**
+
 Direct installation using pip:
 ```sh
 pip install glowpython2
