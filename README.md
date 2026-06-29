@@ -78,8 +78,17 @@ pip install glowpython2
 
 Install from source repository:
 ```sh
-pip install glowpython2@git+https://github.com/sunipkm/glowpython2
+git clone https://github.com/sunipkm/glowpython2
+cd glowpython2
+pip install -e .
 ```
+
+> The above works if you plan to modify the code.
+> If you just want to download the lasest commit & build it from source, use:
+
+> ```sh
+> pip install glowpython2@git+https://github.com/sunipkm/glowpython2
+> ```
 
 Requires (and installs) [geomagdata](https://pypi.org/project/geomagdata/) for timezone aware geomagnetic parameter retrieval.
 ## Usage
