@@ -141,11 +141,14 @@ Install from source repository:
 ```sh
 git clone https://github.com/sunipkm/glowpython2
 cd glowpython2
-pip install -e .
+pip install .
 ```
 
-> The above works if you plan to modify the code.
-> If you just want to download the lasest commit & build it from source, use:
+> **Note:** editable installs (`pip install -e .`) are not supported — meson-python's
+> editable mode does not correctly stage the data files required by the Fortran backend.
+> After modifying Fortran source, re-run `pip install .` to rebuild.
+>
+> If you just want to download the latest commit & build it from source, use:
 
 > ```sh
 > pip install glowpython2@git+https://github.com/sunipkm/glowpython2
