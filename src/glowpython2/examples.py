@@ -4,7 +4,7 @@ from glowpython2.utils import interpolate_nan
 from .base import maxwellian, no_precipitation
 from .plots import Plot
 from matplotlib.pyplot import show
-from dateutil.parser import parse
+from datetime import datetime
 import sys
 import argparse
 import json
@@ -27,7 +27,7 @@ def Maxwellian():
 
     args = parser.parse_args()
 
-    time = parse(args.time)
+    time = datetime.fromisoformat(args.time)
     glat = args.glat
     glon = args.glon
     # %% flux [erg cm-2 s-1 == mW m-2 s-1]
@@ -75,7 +75,7 @@ def NoPrecipitation():
 
     args = parser.parse_args()
 
-    time = parse(args.time)
+    time = datetime.fromisoformat(args.time)
     glat = args.glat
     glon = args.glon
     Nbins = args.Nbins
