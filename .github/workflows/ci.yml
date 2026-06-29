@@ -19,7 +19,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python (Linux/macOS)
+        if: runner.os != 'Windows'
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -32,20 +33,23 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install gcc
 
-      - name: Install gfortran (Windows)
+      - name: Set up conda with Python and gfortran (Windows)
         if: runner.os == 'Windows'
-        uses: msys2/setup-msys2@v2
+        uses: conda-incubator/setup-miniconda@v3
         with:
-          msystem: UCRT64
-          update: true
-          install: mingw-w64-ucrt-x86_64-gcc-fortran
+          miniforge-version: latest
+          python-version: ${{ matrix.python-version }}
+          activate-environment: buildenv
 
-      - name: Add MSYS2 to PATH (Windows)
+      - name: Install gfortran via conda (Windows)
         if: runner.os == 'Windows'
-        run: echo "C:\msys64\ucrt64\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+        shell: bash -el {0}
+        run: conda install -c conda-forge gfortran -y
 
       - name: Install package
+        shell: bash -el {0}
         run: pip install .
 
       - name: Verify import
+        shell: bash -el {0}
         run: python -c "import glowpython2; print(glowpython2.__version__)"
