@@ -6,6 +6,7 @@ All notable changes to glowpython2 are documented here.
 ### Added
 - `CHANGELOG.md` with history migrated from README
 - GitHub Actions CI workflow for Linux, macOS, and Windows
+- Functionality test suite with `pytest`
 
 ### Changed
 - `CONTRIBUTING.md` expanded with changelog workflow and guidelines
@@ -13,6 +14,7 @@ All notable changes to glowpython2 are documented here.
 - README install instructions updated for Windows and general clarity
 - `python-dateutil` dependency removed; minimum Python version bumped
 - `pyproject.toml` dependencies tidied
+- Moved files from tests/ to Examples & updates README to use local versions of some images
 
 ### Fixed
 - Windows install:

@@ -1,11 +1,11 @@
 [![DOI](https://zenodo.org/badge/1026267765.svg)](https://zenodo.org/badge/latestdoi/1026267765)
 # GlowPython2
-The FORTRAN GLobal airglOW ([GLOW](https://github.com/NCAR/GLOW)) Model in Python &ge; 3.11.
+The FORTRAN GLobal airglOW ([GLOW](https://github.com/NCAR/GLOW)) Model in Python.
 
 A Fortran compiler is **REQUIRED**.
 
-<b>Note:</b> This version uses `meson` and `ninja` as the build system, and does not rely on `distutils`,
-and is Python 3.12 compatible.
+<b>Note:</b> This version uses `meson` and `ninja` as the build system, does not rely on `distutils`,
+and is compatible with Python &ge; 3.11.
 
 <b>This library also allows parallelization of model evaluation using the [multiprocessing](https://docs.python.org/3/library/multiprocessing.html) module.</b>
 
