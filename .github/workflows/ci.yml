@@ -39,7 +39,7 @@ jobs:
         with:
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
-          activate-environment: buildenv
+          activate-environment: true
 
       - name: Install gfortran via conda (Windows)
         if: runner.os == 'Windows'
