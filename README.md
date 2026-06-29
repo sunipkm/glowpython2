@@ -22,20 +22,25 @@ into the following fundamental steps:
 
 ## Prerequisites
 A Fortran compiler is **REQUIRED**.
+
 ### Linux
 Ensure that you have the following development packages installed:
 - `build-essential` (for `gcc`, `g++`, `make`, etc.)
 - `gfortran` (Fortran compiler)
+
 ### macOS
 Ensure that you have the Xcode Command Line Tools installed. You can install them by running:
 ```sh
 xcode-select --install
 ```
+
 Install [`homebrew`](https://brew.sh/) if you haven't already, and then install `gfortran`:
 ```sh
 brew install gfortran
 ```
+
 <b>Note:</b> For macOS Big Sur and above, you may need to add the following line to your environment script (`~/.zshrc` if using ZSH, or the relevant shell init script):
+
 ```sh
 export LIBRARY_PATH="$LIBRARY_PATH:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib"
 ```
@@ -91,8 +96,11 @@ pip install -e .
 > ```
 
 Requires (and installs) [geomagdata](https://pypi.org/project/geomagdata/) for timezone aware geomagnetic parameter retrieval.
+
 ## Usage
+
 ### Command-line examples
+
 * `Glow2Maxwellian`: asdf
 * `Glow2NoPrecip`: asdf
 
@@ -115,6 +123,7 @@ iono = glow.maxwellian(time, glat, glon, Nbins, Q, Echar)
 Read the module documentation for more information.
 
 ### Example Plots
+
 | Densities | Temperatures |
 | :---: | :---: |
 | ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` densities with no precipitation.](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/glow_den.png) | ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` temperatures with no precipitation.](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/glow_temp.png) |
@@ -122,12 +131,16 @@ Read the module documentation for more information.
 | Volume Emission Rates |
 | :---: |
 | ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` volume emission rates with no precipitation.](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/glow_ver.png) |
+
 ### Options
+
 GlowPython2 has a few configuration options at runtime - 
 - Magnetic field model: Use `POGO68` for GLOW 0.98 behavior, `IGRF14` for the [IGRF-14](https://www.ncei.noaa.gov/products/international-geomagnetic-reference-field) model (extracted from [IRI-2020](https://irimodel.org/)).
 - Atmosphere and ionosphere model: Use `MSIS00_IRI90` for GLOW 0.98 behavior, `MSIS21_IRI20` for [NRLMSIS 2.1](https://map.nrl.navy.mil/map/pub/nrl/NRLMSIS/NRLMSIS2.1/) and [IRI-2020](https://irimodel.org/).
 - New coefficients from [ModGLOW implementation](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017JA025026): Set `newcoeffs` to `True`. This updates the reaction rates with data from newer publications.
+
 ### Model Output
+
 The returned output is a
 [xarray.Dataset](http://xarray.pydata.org/en/stable/generated/xarray.Dataset.html)
 containing outputs from GLOW:
@@ -190,11 +203,13 @@ containing outputs from GLOW:
 All available keys carry unit and description.
 
 # Acknowledgement
+
 Sincerest gratitude to Dr. Stan Solomon for developing, and open-sourcing the GLOW model.
 
 We are very thankful to Guy Gribbs for providing the [`gchem_modglow.f90`](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/src/GLOW/gchem_modglow.f90) file with the modified reaction rate coefficients for the `GCHEM` subroutine. His prompt response saved us many hours of work.
 
 # Citation
+
 If you use this code in your work, please cite the repository:
 ```bibtex
 @software{sunipkm_glowpython2_2025,
@@ -210,6 +225,7 @@ If you use this code in your work, please cite the repository:
 ```
 
 # Changelog
+
 - <b>2026-01-09</b>
   - Version bumped to 0.0.3
   - BREAKING: Dataset structure changed. 
