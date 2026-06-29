@@ -33,23 +33,24 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install gcc
 
-      - name: Set up conda with Python and gfortran (Windows)
+      - name: Set up conda with Python (Windows)
         if: runner.os == 'Windows'
         uses: conda-incubator/setup-miniconda@v3
         with:
           miniforge-version: latest
           python-version: ${{ matrix.python-version }}
-          activate-environment: true
 
-      - name: Install gfortran via conda (Windows)
+      - name: Install gfortran, package, and verify (Windows)
         if: runner.os == 'Windows'
-        shell: bash -el {0}
-        run: conda install -c conda-forge gfortran -y
+        run: |
+          conda install -c conda-forge gfortran -y
+          conda run --no-capture-output pip install .
+          conda run python -c "import glowpython2; print(glowpython2.__version__)"
 
-      - name: Install package
-        shell: bash -el {0}
+      - name: Install package (Linux/macOS)
+        if: runner.os != 'Windows'
         run: pip install .
 
-      - name: Verify import
-        shell: bash -el {0}
+      - name: Verify import (Linux/macOS)
+        if: runner.os != 'Windows'
         run: python -c "import glowpython2; print(glowpython2.__version__)"
