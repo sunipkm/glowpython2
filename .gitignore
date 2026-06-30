@@ -35,3 +35,4 @@ OLDGLOW/
 # Others
 *.txt
 *.png
+!Examples/*.png

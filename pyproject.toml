@@ -13,7 +13,7 @@ build-backend = "mesonpy"
 [project]
 name = "glowpython2"
 dynamic = ["version"]
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 authors = [
     {name = "Sunip K. Mukherjee", email = "sunipkmukherjee@gmail.com"},
 ]
@@ -34,15 +34,17 @@ classifiers = [
 license = {file = "LICENSE"}
 readme = "README.md"
 dependencies = [
-  'meson', 
-  'ninja', 
-  'numpy >= 1.14.5', 
-  'xarray >= 0.15', 
-  'geomagdata >= 1.6.1', 
+  'numpy >= 1.14.5',
+  'xarray >= 0.15',
+  'geomagdata >= 1.6.1',
   'pytz',
-  'msis21py>=0.0.5',
-  'iri20py>=0.0.5',
+  'matplotlib',
+  'msis21py >= 0.0.5',
+  'iri20py >= 0.0.5',
 ]
+
+[project.optional-dependencies]
+test = ["pytest"]
 
 [tool.setuptools_scm]
 

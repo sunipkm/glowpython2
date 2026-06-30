@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    name: Run tests (${{ matrix.os }}, Python ${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.14"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python (Linux/macOS)
+        if: runner.os != 'Windows'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install gfortran (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get install -y gfortran
+
+      - name: Install gfortran (macOS)
+        if: runner.os == 'macOS'
+        run: brew install gcc
+
+      - name: Set up conda with Python (Windows)
+        if: runner.os == 'Windows'
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          miniforge-version: latest
+          python-version: ${{ matrix.python-version }}
+
+      - name: Create short temp directory (Windows)
+        if: runner.os == 'Windows'
+        run: New-Item -ItemType Directory -Force -Path C:\T | Out-Null
+
+      - name: Install gfortran + glowpython2 (Windows)
+        if: runner.os == 'Windows'
+        env:
+          TEMP: C:\T
+          TMP: C:\T
+        run: |
+          conda install -c conda-forge gfortran -y
+          conda run --no-capture-output pip install .[test]
+          conda run python -c "import glowpython2; print(glowpython2.__version__)"
+
+      - name: Install (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: pip install .[test]
+
+      - name: Tests (Linux/macOS)
+        if: runner.os != 'Windows'
+        run: python -m pytest tests
+
+      - name: Tests (Windows)
+        # Running all tests on Windows for now...
+        # If the runtime starts getting too long, this can be changed to just one test
+        if: runner.os == 'Windows'
+        run: conda run --no-capture-output python -m pytest tests
+        # run: conda run --no-capture-output python -m pytest tests/test_no_precip.py
+        # ^^ If we just want to run one test

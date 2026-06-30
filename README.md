@@ -1,11 +1,11 @@
 [![DOI](https://zenodo.org/badge/1026267765.svg)](https://zenodo.org/badge/latestdoi/1026267765)
 # GlowPython2
-The FORTRAN GLobal airglOW ([GLOW](https://github.com/NCAR/GLOW)) Model in Python &ge; 3.9.
+The FORTRAN GLobal airglOW ([GLOW](https://github.com/NCAR/GLOW)) Model in Python.
 
 A Fortran compiler is **REQUIRED**.
 
-<b>Note:</b> This version uses `meson` and `ninja` as the build system, and does not rely on `distutils`,
-and is Python 3.12 compatible.
+<b>Note:</b> This version uses `meson` and `ninja` as the build system, does not rely on `distutils`,
+and is compatible with Python &ge; 3.11.
 
 <b>This library also allows parallelization of model evaluation using the [multiprocessing](https://docs.python.org/3/library/multiprocessing.html) module.</b>
 
@@ -22,55 +22,116 @@ into the following fundamental steps:
 
 ## Prerequisites
 A Fortran compiler is **REQUIRED**.
+
 ### Linux
 Ensure that you have the following development packages installed:
 - `build-essential` (for `gcc`, `g++`, `make`, etc.)
 - `gfortran` (Fortran compiler)
+
 ### macOS
 Ensure that you have the Xcode Command Line Tools installed. You can install them by running:
 ```sh
 xcode-select --install
 ```
+
 Install [`homebrew`](https://brew.sh/) if you haven't already, and then install `gfortran`:
 ```sh
 brew install gfortran
 ```
+
 <b>Note:</b> For macOS Big Sur and above, you may need to add the following line to your environment script (`~/.zshrc` if using ZSH, or the relevant shell init script):
+
 ```sh
 export LIBRARY_PATH="$LIBRARY_PATH:/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/lib"
 ```
 Then reopen the terminal. This fixes the issue where `-lSystem` fails for `gfortran`.
- 
+
 ### Windows (amd64 or x86_64 targets)
-On Windows, MSYS2 is the preferred distribution for installing the Fortran compiler toolchain (for GNU Compiler Collection).
-- Install [MSYS2](https://www.msys2.org/).
-  Note the directory where MSYS2 was installed (defaults to `C:\msys64`) [referred to as `MSYS_INSTALL_DIR`].
-  It is not recommended to change this directory.
-- Launch the MSYS2 terminal (MSYS2 MSYS application on the start menu)
-- Update MSYS2 environment (assuming fresh install):
-  ```sh
-  pacman -Syu # Restart the terminal
-  pacman -Su  # Update packages
-  ```
-- Install the GNU Compiler Collection:
-  ```sh
-  pacman -S --needed base-devel mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-gcc-fortran
-  ```
-- Add `MSYS_INSTALL_DIR\ucrt64\bin` (defaults to `C:\msys64\ucrt64\bin`) to `PATH`:
-  - Search for `env` in the Start menu,
-  - Select "Edit the system environment variables",
-  - Click "Environment Variables",
-  - Double click 'Path' under 'User variables for USER'
-  - Click "New"
-  - Type in, or paste the full path to `ucrt64\bin` (defaults to `C:\msys64\ucrt64\bin`)
-  - Click "Ok" on the environment variable windows to save the changes.
-- Continue with installation instructions for the Python packages below, in a new, regular terminal (e.g. Command Prompt or PowerShell with Python installed).
+
+> [!IMPORTANT]
+> **Windows Path Length Limitation**: `glowpython2` and its dependencies (`msis21py`,
+> `iri20py`) compile Fortran code using Meson & pip, which can put temporary object
+> files with very long paths. Windows has a 260-character path limit by default.
+> 
+> You **must set the TEMP and TMP environment variables to short paths** before 
+> installing, regardless of which method you use to install `gfortran`.
+
+**Conda (Recommended):**
+
+Using [conda](https://docs.conda.io/en/latest/) or [miniforge](https://github.com/conda-forge/miniforge):
+
+```sh
+conda install -c conda-forge gfortran
+mkdir C:\T
+set TEMP=C:\T
+set TMP=C:\T
+```
+
+**Other Options:**
+
+<details>
+<summary>MSYS2</summary>
+
+1. Install [MSYS2](https://www.msys2.org/) (defaults to `C:\msys64`)
+2. Launch the MSYS2 terminal from the start menu
+3. Update MSYS2:
+   ```sh
+   pacman -Syu  # Restart the terminal when prompted
+   pacman -Su   # Update packages
+   ```
+4. Install the GNU Compiler Collection:
+   ```sh
+   pacman -S --needed base-devel mingw-w64-ucrt-x86_64-toolchain mingw-w64-ucrt-x86_64-gcc-fortran
+   ```
+5. Add MSYS2 to PATH:
+   - Search for "env" in the Start menu
+   - Select "Edit the system environment variables"
+   - Click "Environment Variables"
+   - Double-click 'Path' under 'User variables'
+   - Click "New"
+   - Add `C:\msys64\ucrt64\bin`
+   - Click OK to save
+6. In a new regular terminal (Command Prompt or PowerShell), set short temp paths and install:
+   ```sh
+   mkdir C:\T
+   set TEMP=C:\T
+   set TMP=C:\T
+   ```
+
+</details>
+
+<details>
+<summary>Winlibs</summary>
+
+1. Download a pre-built MinGW-w64 bundle from [winlibs.com](https://winlibs.com)
+2. Extract it anywhere on your system
+3. Add the `bin\` folder to your PATH:
+   - Search for "env" in the Start menu
+   - Select "Edit the system environment variables"
+   - Click "Environment Variables"
+   - Double-click 'Path' under 'User variables'
+   - Click "New"
+   - Add the full path to the `bin` folder (e.g., `C:\mingw\bin`)
+   - Click OK to save
+4. In a new terminal, set short temp paths and install:
+   ```sh
+   mkdir C:\T
+   set TEMP=C:\T
+   set TMP=C:\T
+   ```
+
+</details>
+
+
+Then continue with the instructions below. Either `pip install` or use build manually.
 
 > [!NOTE] 
-> Change the toolchain names accordingly for Windows arm64.
-> This platform has not been tested and is not officially supported.
+> Windows arm64 is not tested and is not officially supported.
 
 ## Installation
+
+**Please ensure you have followed the prequisite steps above before installing!**
+
 Direct installation using pip:
 ```sh
 pip install glowpython2
@@ -78,22 +139,31 @@ pip install glowpython2
 
 Install from source repository:
 ```sh
-pip install glowpython2@git+https://github.com/sunipkm/glowpython2
+git clone https://github.com/sunipkm/glowpython2
+cd glowpython2
+pip install .
 ```
 
+> **Note:** editable installs (`pip install -e .`) are not supported — meson-python's
+> editable mode does not correctly stage the data files required by the Fortran backend.
+> After modifying Fortran source, re-run `pip install .` to rebuild.
+>
+> If you just want to download the latest commit & build it from source, use:
+
+> ```sh
+> pip install glowpython2@git+https://github.com/sunipkm/glowpython2
+> ```
+
 Requires (and installs) [geomagdata](https://pypi.org/project/geomagdata/) for timezone aware geomagnetic parameter retrieval.
+
 ## Usage
+
 ### Command-line examples
+
 * `Glow2Maxwellian`: asdf
 * `Glow2NoPrecip`: asdf
 
-### Pre-defined examples
-
-* [`Maxwellian.py`](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/Examples/Maxwellian.py): Maxwellian precipitation, specify Q (flux) and E0 (characteristic energy).
-* [`NoPrecipitation.py`](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/Examples/NoPrecipitation.py): No precipitating electrons.
-* [`test_glow.py`](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/test_glow.py): Compares GLOW results between `glowpython` and `glowpython2` modules without precipitation, as well as with NRLMSISE-2.1 atmosphere and IRI-2020 ionosphere.
-
-These examples are also available on the command line: `Glow2Maxwellian` and `Glow2NoPrecip`.
+> This is a work in progress!
 
 ### Using `glowpython2` module
 In Python source code, import the module and call the `maxwellian` function:
@@ -105,20 +175,29 @@ iono = glow.maxwellian(time, glat, glon, Nbins, Q, Echar)
 
 Read the module documentation for more information.
 
-### Example Plots
+### Examples
+
+
+Example scripts are in [Examples/](Examples/).
+These examples cover no-precipitation and Maxwellian runs, GLOW model comparisons across atmosphere/ionosphere configurations, and side-by-side IRI and MSIS model comparisons.
+
 | Densities | Temperatures |
 | :---: | :---: |
-| ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` densities with no precipitation.](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/glow_den.png) | ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` temperatures with no precipitation.](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/glow_temp.png) |
+| ![Model comparison: neutral densities.](Examples/model_comparison_density.png) | ![Model comparison: temperatures.](Examples/model_comparison_temperature.png) |
 
-| Volume Emission Rates |
-| :---: |
-| ![Comparison of [`glowpython`](https://pypi.org/project/glowpython/) and `glowpython2` volume emission rates with no precipitation.](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/tests/glow_ver.png) |
+| Volume Emission Rates | IRI Comparison | MSIS Comparison |
+| :---: | :---: | :---: |
+| ![Model comparison: volume emission rates.](Examples/model_comparison_ver.png) | ![IRI-90 vs IRI-2020 ion densities and temperatures.](Examples/iri_comparison.png) | ![MSIS-00 vs MSIS-2.1 neutral densities.](Examples/msis_comparison.png) |
+
 ### Options
+
 GlowPython2 has a few configuration options at runtime - 
 - Magnetic field model: Use `POGO68` for GLOW 0.98 behavior, `IGRF14` for the [IGRF-14](https://www.ncei.noaa.gov/products/international-geomagnetic-reference-field) model (extracted from [IRI-2020](https://irimodel.org/)).
 - Atmosphere and ionosphere model: Use `MSIS00_IRI90` for GLOW 0.98 behavior, `MSIS21_IRI20` for [NRLMSIS 2.1](https://map.nrl.navy.mil/map/pub/nrl/NRLMSIS/NRLMSIS2.1/) and [IRI-2020](https://irimodel.org/).
 - New coefficients from [ModGLOW implementation](https://agupubs.onlinelibrary.wiley.com/doi/full/10.1002/2017JA025026): Set `newcoeffs` to `True`. This updates the reaction rates with data from newer publications.
+
 ### Model Output
+
 The returned output is a
 [xarray.Dataset](http://xarray.pydata.org/en/stable/generated/xarray.Dataset.html)
 containing outputs from GLOW:
@@ -181,11 +260,13 @@ containing outputs from GLOW:
 All available keys carry unit and description.
 
 # Acknowledgement
+
 Sincerest gratitude to Dr. Stan Solomon for developing, and open-sourcing the GLOW model.
 
 We are very thankful to Guy Gribbs for providing the [`gchem_modglow.f90`](https://raw.githubusercontent.com/sunipkm/glowpython2/refs/heads/master/src/GLOW/gchem_modglow.f90) file with the modified reaction rate coefficients for the `GCHEM` subroutine. His prompt response saved us many hours of work.
 
 # Citation
+
 If you use this code in your work, please cite the repository:
 ```bibtex
 @software{sunipkm_glowpython2_2025,
@@ -199,8 +280,3 @@ If you use this code in your work, please cite the repository:
   url          = {https://github.com/sunipkm/glowpython2},
 }
 ```
-
-# Changelog
-- <b>2026-01-09</b>
-  - Version bumped to 0.0.3
-  - BREAKING: Dataset structure changed. 
